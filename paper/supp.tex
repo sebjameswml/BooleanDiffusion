@@ -1,0 +1,276 @@
+% This is an example of using latex for a paper/report of specified
+% size/layout. It's useful if you want to provide a PDF that looks
+% like it was made in a normal word processor.
+
+% While writing, don't stop for errors
+\nonstopmode
+
+% Use the article doc class, with an 11 pt basic font size
+\documentclass[11pt, a4paper]{article}
+
+% Makes the main font Nimbus Roman, a Times New Roman lookalike:
+%\usepackage{mathptmx}% http://ctan.org/pkg/mathptmx
+% OR use this for proper Times New Roman (from msttcorefonts package
+% on Ubuntu). Use xelatex instead of pdflatex to compile:
+\usepackage{fontspec}
+\usepackage{xltxtra}
+\usepackage{xunicode}
+\defaultfontfeatures{Scale=MatchLowercase,Mapping=tex-text}
+\setmainfont{Times New Roman}
+
+% Set margins
+\usepackage[margin=2.5cm]{geometry}
+
+% Multilingual support
+\usepackage[english]{babel}
+
+% Nice mathematics
+\usepackage{amsmath}
+\usepackage{esint}
+
+% Left right harpoons for kinetic equations
+\usepackage{mathtools}
+
+% Control over maketitle
+\usepackage{titling}
+
+% Section styling
+\usepackage{titlesec}
+
+% Ability to use colour in text
+\usepackage[usenames]{color}
+
+% For the \degree symbol
+\usepackage{gensymb}
+
+% Allow includegraphics and nice wrapped figures
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage[outercaption]{sidecap}
+
+% Set formats using titlesec
+\titleformat*{\section}{\bfseries\rmfamily}
+\titleformat*{\subsection}{\bfseries\itshape\rmfamily}
+
+% thetitle is the number of the section. This sets the distance from
+% the number to the section text.
+\titlelabel{\thetitle.\hskip0.3em\relax}
+
+% Set title spacing with titlesec, too.  The first {1.0ex plus .2ex
+% minus .7ex} sets the spacing above the section title. The second
+% {-1.0ex plus 0.2ex} sets the spacing the section title to the
+% paragraph.
+\titlespacing{\section}{0pc}{1.0ex plus .2ex minus .7ex}{-1.1ex plus 0.2ex}
+
+%% Trick to define a language alias and permit language = {en} in the .bib file.
+% From: http://tex.stackexchange.com/questions/199254/babel-define-language-synonym
+\usepackage{letltxmacro}
+\LetLtxMacro{\ORIGselectlanguage}{\selectlanguage}
+\makeatletter
+\DeclareRobustCommand{\selectlanguage}[1]{%
+  \@ifundefined{alias@\string#1}
+    {\ORIGselectlanguage{#1}}
+    {\begingroup\edef\x{\endgroup
+       \noexpand\ORIGselectlanguage{\@nameuse{alias@#1}}}\x}%
+}
+\newcommand{\definelanguagealias}[2]{%
+  \@namedef{alias@#1}{#2}%
+}
+\makeatother
+\definelanguagealias{en}{english}
+\definelanguagealias{eng}{english}
+%% End language alias trick
+
+%% Any aliases here
+\newcommand{\mb}[1]{\mathbf{#1}} % this won't work?
+% Emphasis and bold.
+\newcommand{\e}{\emph}
+\newcommand{\mycite}[1]{\cite{#1}}
+\newcommand{\code}[1]{\textsf{#1}}
+\newcommand{\dvrg}{\nabla\vcdot\nabla}
+%% END aliases
+
+% Custom font defs
+% fontsize is \fontsize{fontsize}{linespacesize}
+\def\authorListFont{\fontsize{11}{11} }
+\def\corrAuthorFont{\fontsize{10}{10} }
+\def\affiliationListFont{\fontsize{11}{11}\itshape }
+\def\titleFont{\fontsize{14}{11} \bfseries }
+\def\textFont{\fontsize{11}{11} }
+\def\sectionHdrFont{\fontsize{11}{11}\bfseries}
+\def\bibFont{\fontsize{10}{10} }
+\def\captionFont{\fontsize{10}{10} }
+
+% Caption font size to be small.
+\usepackage[font=small,labelfont=bf]{caption}
+
+% Make a dot for the dot product, call it vcdot for 'vector calculus
+% dot'. Bigger than \cdot, smaller than \bullet.
+\makeatletter
+\newcommand*\vcdot{\mathpalette\vcdot@{.35}}
+\newcommand*\vcdot@[2]{\mathbin{\vcenter{\hbox{\scalebox{#2}{$\m@th#1\bullet$}}}}}
+\makeatother
+
+\def\firstAuthorLast{James}
+
+% Affiliations
+\def\Address{\\
+\affiliationListFont Adaptive Behaviour Research Group, Department of Psychology,
+  The University of Sheffield, Sheffield, UK \\
+}
+
+% The Corresponding Author should be marked with an asterisk. Provide
+% the exact contact address (this time including street name and city
+% zip code) and email of the corresponding author
+\def\corrAuthor{Seb James}
+\def\corrAddress{Department of Psychology, The University of Sheffield,
+  Western Bank, Sheffield, S10 2TP, UK}
+\def\corrEmail{seb.james@sheffield.ac.uk}
+
+% Figure out the font for the author list..
+\def\Authors{\authorListFont Sebastian James\\[1 ex]  \Address \\
+  \corrAuthorFont $^{*}$ Correspondence: \corrEmail}
+
+% No page numbering please
+\pagenumbering{gobble}
+
+% A trick to get the bibliography to show up with 1. 2. etc in place
+% of [1], [2] etc.:
+\makeatletter
+\renewcommand\@biblabel[1]{#1.}
+\makeatother
+
+% reduce separation between bibliography items if not using natbib:
+\let\OLDthebibliography\thebibliography
+\renewcommand\thebibliography[1]{
+  \OLDthebibliography{#1}
+  \setlength{\parskip}{0pt}
+  \setlength{\itemsep}{0pt plus 0.3ex}
+}
+
+% Set correct font for bibliography (doesn't work yet)
+%\renewcommand*{\bibfont}{\bibFont}
+
+% No paragraph indenting to match the VPH format
+\setlength{\parindent}{0pt}
+
+% Skip a line after paragraphs
+\setlength{\parskip}{0.5\baselineskip}
+\onecolumn
+
+% titling definitions
+\pretitle{\begin{center}\titleFont}
+\posttitle{\par\end{center}\vskip 0em}
+\preauthor{ % Fonts are set within \Authors
+        \vspace{-1.1cm} % Bring authors up towards title
+        \begin{center}
+        \begin{tabular}[t]{c}
+}
+\postauthor{\end{tabular}\par\end{center}}
+
+% Define title, empty date and authors
+\title {
+  Boolean diffusion: Using Boolean networks as the \emph{reaction} in reaction-diffusion models
+}
+\date{} % No date please
+\author{\Authors}
+
+%% END OF PREAMBLE
+
+\begin{document}
+
+\setlength{\droptitle}{-1.8cm} % move the title up a suitable amount
+\maketitle
+
+\vspace{-1.8cm} % HACK bring the introduction up towards the title. It
+                % would be better to do this with titling in \maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+
+A Boolean network (Kauffman's $NK$-model~\cite{kauffman_origins_1993}) can be
+used to represent the genetic machinery in a biological cell. A network of $N$
+nodes can be taken to represent $N$ gene/protein actors, which interact with
+one another according to a table. To keep the model as simple as possible,
+it's assumed that there is a 1-1 relationship between genes and proteins and
+that the activation of a gene is equivalent to the production of its
+corresponding protein. The activation of a gene may interact with the future
+state of the system---its protein product may activate or suppress any of the
+$N$ genes. Imagine $N=3$ and the genes are named $a$, $b$ and $c$. Using this
+table, it would be possible to look up what the future state of $c$ will be
+in, for example, the case that only $a$ is currently expressed or in the case
+that any other combination of $a$, $b$ and $c$ are expressed. The table can
+define relationships such as ``if proteins $a$ and $b$ are both present, then
+protein $c$ will be expressed'' and ``protein $c$ supresses protein
+$a$''. Repeatedly updating the states of the three genes according to the
+table allows the system to represent a developmental process. Note though,
+that we do not know anything about the amount of time that may occur between
+updates.
+
+Because the relationships in the table are Boolean, it takes the form of a
+truth table, which makes it easy to apply random modifications to the system:
+Bits in the truth table can be flipped and the behaviour of the system
+examined. As such, it forms a useful, albeit abstract and highly simplified
+model to explore how random mutations to a `genome' (the table) affect
+developmental processes. If the state of the system can be used to define a
+fitness, then evolutionary algorithms can be applied to find out whether
+evolution could find a viable solution to a set of environmental constraints.
+
+What is the spatial extent of this system? That is up to the researcher to
+decide. It could be applied to a single strand of DNA and the molecules in its
+immediate vicinity, across a complete cell, or within a region of tissue. It
+is attractive to consider the model as applying to a cell because a within one
+cell it seems like a reasonable simplification to suggest that protein
+concentrations are uniform. How, then, would processes within one cell
+communicate information to other cells? One way is for protein products to
+pass through (or otherwise send signals via) the cell membrane, travel through
+the extracellular matrix between cells, and into other cells. Such proteins
+are called morphogens. Another way is for the cells to reproduce, so that
+there are more cells which will generate a particular combination of gene
+products.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{First system}
+
+Average protein densities, $a_i$ for each of $N$ genes operating in the cells
+within a spatial element are arbitrary. Pass these through a sigmoid or
+threshold, $\sigma()$ to determine whether a gene's input is on or
+off. Operate the Boolean net, $G$, and use its output for the $i^{th}$
+protein, $G_i$, to add $\Delta_i$ to the protein density. Allow proteins to
+diffuse with constant $D_i$ (perhaps choose two representative length scales
+for cell-cell interactions and morphogen-type diffusion). Give each protein a
+characteristic decay lifetime, $\alpha_i$ (either set
+%
+$\alpha_i = \alpha,~\forall i$ or, as for diffusion, choose two values for
+fast- and slow-decay proteins). Then we can write $N$ differential equations as:
+
+\begin{equation} \label{eq:bd}
+\frac{\partial a_i(\mb{x},t)}{\partial t} = D_i \dvrg a_i(\mb{x},t) -\alpha_i
+a_i(\mb{x},t) + \Delta_i G_i\big(\sigma(a_1), \sigma(a_2),...,\sigma(a_N)\big)
+\end{equation}
+
+Run the system and colour regions according to $a_i$ and also perhaps which
+basin of activity $G$ is operating in. That'd be cool.
+
+%
+%
+BIBLIOGRAPHY
+%
+\selectlanguage{English}
+\bibliographystyle{abbrvnotitle}
+% The bibliography NoTremor.bib is the one exported from Zotero. It
+% may be necessary to run my UTF-8 cleanup script, bbl_utf8_to_latex.sh
+%%\bibliography{NoTremor}
+%
+% It produces this:
+\begin{thebibliography}{1}
+
+\bibitem{kauffman_origins_1993}
+Stuart~A.~Kauffman.
+\newblock {\em The {Origins} of {Order:} {Self-Organization} and {Selection}
+in {Evolution}}.
+\newblock New York: Oxford University Press, 1993.
+
+\end{thebibliography}
+
+\end{document}

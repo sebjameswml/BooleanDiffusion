@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+# in-tree morphologica
+morphologica
