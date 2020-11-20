@@ -3,9 +3,9 @@ project(BooleanDiffusion)
 
 message(STATUS "Operating system: " ${CMAKE_SYSTEM})
 if(CMAKE_SYSTEM MATCHES Linux.*)
-  set(MORPH_HOST_DEFINITION "-D__GLN__")
+  set(OS_DEFINITION "-D__GLN__")
 elseif(APPLE)
-  set(MORPH_HOST_DEFINITION "-D__OSX__")
+  set(OS_DEFINITION "-D__OSX__")
 else()
   message(ERROR "Operating system not supported: " ${CMAKE_SYSTEM})
 endif()
@@ -14,9 +14,9 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 
 if (APPLE)
-  set(CMAKE_CXX_FLAGS "${EXTRA_HOST_DEFINITION} -Wall -Wfatal-errors -g -O3")
+  set(CMAKE_CXX_FLAGS "${OS_DEFINITION} -Wall -Wfatal-errors -g -O3")
 else() # assume g++ (or a gcc/g++ mimic like Clang)
-  set(CMAKE_CXX_FLAGS "${EXTRA_HOST_DEFINITION} -Wall -Wfatal-errors -g -Wno-unused-result -Wno-unknown-pragmas -march=native -O3")
+  set(CMAKE_CXX_FLAGS "${OS_DEFINITION} -Wall -Wfatal-errors -g -Wno-unused-result -Wno-unknown-pragmas -march=native -O3")
 endif()
 
 # Tell clang to be quiet about brace initialisers:
