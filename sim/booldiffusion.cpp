@@ -35,6 +35,8 @@ void savePngs (const std::string& logpath, const std::string& name,
     ff1 << ".png";
     v.saveImage (ff1.str());
 }
+// A convenience typedef
+typedef morph::VisualDataModel<FLT>* VdmPtr;
 #endif
 
 #include <morph/tools.h>
@@ -209,16 +211,20 @@ int main (int argc, char **argv)
     xzero -= 0.5*RD.hg->width();
     spatOff = { xzero, 0.0, 0.0 };
     // Z position scaling - how hilly/bumpy the visual will be.
-    morph::Scale<FLT> zscale; zscale.setParams (0.2f, 0.0f);
-    // The second is the colour scaling. Set this to autoscale.
-    morph::Scale<FLT> cscale; cscale.do_autoscale = true;
-    unsigned int Agrid = v1.addVisualModel (new morph::HexGridVisual<FLT> (v1.shaderprog,
-                                                                           RD.hg,
-                                                                           spatOff,
-                                                                           &(RD.a[0]),
-                                                                           zscale,
-                                                                           cscale,
-                                                                           morph::ColourMapType::Plasma));
+    std::array<unsigned int, N> grids;
+    for (unsigned int i = 0; i < N; ++i) {
+        morph::Scale<FLT> zscale; zscale.setParams (0.2f, 0.0f);
+        // The second is the colour scaling. Set this to autoscale.
+        morph::Scale<FLT> cscale; cscale.do_autoscale = true;
+        grids[i] = v1.addVisualModel (new morph::HexGridVisual<FLT> (v1.shaderprog,
+                                                                     RD.hg,
+                                                                     spatOff,
+                                                                     &(RD.a[i]),
+                                                                     zscale,
+                                                                     cscale,
+                                                                     morph::ColourMapType::Jet));
+        spatOff[0] += (3.0f * conf.getFloat ("ellipse_a", 0.8f));
+    }
 #endif
 
     /*
@@ -232,9 +238,11 @@ int main (int argc, char **argv)
         if ((RD.stepCount % plotevery) == 0) {
             // These two lines update the data for the two hex grids. That leads to
             // the CPU recomputing the OpenGL vertices for the visualizations.
-            morph::VisualDataModel<FLT>* avm = (morph::VisualDataModel<FLT>*)v1.getVisualModel (Agrid);
-            avm->updateData (&(RD.a[0]));
-            avm->clearAutoscaleColour();
+            for (unsigned int i = 0; i < N; ++i) {
+                VdmPtr avm = (VdmPtr)v1.getVisualModel (grids[i]);
+                avm->updateData (&(RD.a[0]));
+                avm->clearAutoscaleColour();
+            }
 
             if (saveplots) {
                 if (vidframes) {

@@ -106,6 +106,9 @@ public:
         this->zero_vector_vector (this->G, N);
         this->zero_vector_array_vector (this->grad_a, N);
         //this->noiseify_vector_vector (this->a, this->initmasks);
+        this->a[0][0] = 1.0f;
+
+        this->genome.randomize();
     }
 
     void save()
@@ -116,10 +119,11 @@ public:
         fname.fill('0');
         fname << this->stepCount << ".h5";
         morph::HdfData data(fname.str());
-        std::stringstream path;
-
-        path << "/a";
-        data.add_contained_vals (path.str().c_str(), this->a);
+        for (unsigned int i = 0; i<N; ++i) {
+            std::stringstream path;
+            path << "/a_" << i;
+            data.add_contained_vals (path.str().c_str(), this->a[i]);
+        }
     }
 
     Flt sigmoid (Flt _a) { return (Flt{1} / (Flt{1} + std::exp(-_a))); }
@@ -138,14 +142,14 @@ public:
             std::cout << "Start state for hex " << h << " is " << morph::bn::GeneNet<N,K>::state_str(s) << std::endl;
             // Now have the current state, see what the next state is
             this->grn.develop (s, this->genome);
-            std::cout << "Next state for hex " << h << " is " << morph::bn::GeneNet<N,K>::state_str(s) << std::endl;
-            std::cout << "That means G[][h=" << h << "] = ";
+            std::cout << "Next state for hex  " << h << " is             " << morph::bn::GeneNet<N,K>::state_str(s) << std::endl;
+            //std::cout << "That means G[][h=" << h << "] = ";
             // Now state contains the 'next state'
             for (size_t i = 0; i < N; ++i) {
-                this->G[i][h] = this->Delta[i] * ((s & 1<<i) ? Flt{1} : Flt{0});
-                std::cout << this->G[i][h] << ",";
+                this->G[i][h] = ((s & 1<<i) ? Flt{1} : Flt{0});
+                //std::cout << this->G[i][h] << ",";
             }
-            std::cout << std::endl;
+            //std::cout << std::endl;
         }
     }
 
@@ -153,9 +157,13 @@ public:
     {
         std::vector<Flt> lap_a(this->nhex, 0.0);
         this->compute_laplace (a_, lap_a);
-#pragma omp parallel for
+//#pragma omp parallel for
         for (unsigned int h=0; h<this->nhex; ++h) {
-            dadt[h] = this->D[i] * lap_a[h] - this->alpha[i] * a_[h] + this->G[i][h];
+            Flt term1 = this->D[i] * lap_a[h];
+            Flt term2 = - this->alpha[i] * a_[h];
+            Flt term3 = this->Delta[i] * this->G[i][h]
+            std::cout << "diffn term: " << term1 << ", decay term: " << term2 << " grn term: " << term3 << std::endl;
+            dadt[h] = term1 + term2 + term3;
         }
     }
 
@@ -212,9 +220,11 @@ public:
 
                 // Final sum together. This could be incorporated in the for loop for
                 // Stage 4, but I've separated it out for pedagogy.
-#pragma omp parallel for
+//#pragma omp parallel for
                 for (unsigned int h=0; h<this->nhex; ++h) {
-                    this->a[i][h] += ((K1[h] + 2.0 * (K2[h] + K3[h]) + K4[h])/(Flt)6.0);
+                    Flt delta_a = ((K1[h] + 2.0 * (K2[h] + K3[h]) + K4[h])/(Flt)6.0);
+                    this->a[i][h] += delta_a;
+                    std::cout << "For hex " << h << ", added " << delta_a << " to get " << a[i][h] << std::endl;
                 }
             }
         }
