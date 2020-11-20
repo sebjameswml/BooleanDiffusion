@@ -92,8 +92,8 @@ public:
         // 'vector variable' is given by the number of hexes in the hex grid which is
         // a member of this class (via its parent, RD_Base)
         this->resize_vector_vector (this->a, N);
-        this->resize_vector_array_vector (this->grad_a, N);
         this->resize_vector_vector (this->G, N);
+        this->resize_vector_array_vector (this->grad_a, N);
         this->resize_vector_param (this->alpha, N);
         this->resize_vector_param (this->D, N);
         this->resize_vector_param (this->Delta, N);
@@ -103,9 +103,9 @@ public:
     void init()
     {
         this->zero_vector_vector (this->a, N);
-        this->zero_vector_array_vector (this->grad_a, this->N);
-        this->zero_vector_array_vector (this->J, this->N);
-        this->noiseify_vector_vector (this->a, this->initmasks);
+        this->zero_vector_vector (this->G, N);
+        this->zero_vector_array_vector (this->grad_a, N);
+        //this->noiseify_vector_vector (this->a, this->initmasks);
     }
 
     void save()
@@ -184,7 +184,7 @@ public:
 #pragma omp parallel for
                 for (unsigned int h=0; h<this->nhex; ++h) {
                     K1[h] = dadt[h] * this->dt;
-                    atst[h] = this->A[h] + K1[h] * 0.5 ;
+                    atst[h] = this->a[i][h] + K1[h] * 0.5 ;
                 }
 
                 // Stage 2
@@ -192,7 +192,7 @@ public:
 #pragma omp parallel for
                 for (unsigned int h=0; h<this->nhex; ++h) {
                     K2[h] = dadt[h] * this->dt;
-                    atst[h] = this->A[h] + K2[h] * 0.5;
+                    atst[h] = this->a[i][h] + K2[h] * 0.5;
                 }
 
                 // Stage 3
@@ -200,7 +200,7 @@ public:
 #pragma omp parallel for
                 for (unsigned int h=0; h<this->nhex; ++h) {
                     K3[h] = dadt[h] * this->dt;
-                    atst[h] = this->A[h] + K3[h];
+                    atst[h] = this->a[i][h] + K3[h];
                 }
 
                 // Stage 4

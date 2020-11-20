@@ -40,6 +40,10 @@ void savePngs (const std::string& logpath, const std::string& name,
 #include <morph/tools.h>
 #include <morph/Config.h>
 
+// N, K are hard defined at global scope
+static constexpr size_t N = 5;
+static constexpr size_t K = 5;
+
 int main (int argc, char **argv)
 {
     if (argc < 2) {
@@ -140,7 +144,7 @@ int main (int argc, char **argv)
      * Simulation instantiation
      */
 
-    RD_Bool<FLT, 5, 5> RD;
+    RD_Bool<FLT, N, K> RD;
 
     RD.svgpath = ""; // We'll do an elliptical boundary, so set svgpath empty
     RD.ellipse_a = conf.getDouble ("ellipse_a", 0.8);
@@ -150,8 +154,23 @@ int main (int argc, char **argv)
     RD.boundaryFalloffDist = conf.getFloat ("boundaryFalloffDist", 0.01f);
     RD.allocate();
     RD.set_dt (dt);
+
     // Set the Boolean Diffusion model parameters
-    RD.D[i] = conf.getDouble ("D") // FIXME - might need to do a loop in the json for these values
+    const Json::Value params = conf.getArray ("model_params");
+    unsigned int npar = static_cast<unsigned int>(params.size());
+    if (npar != N) {
+        std::cerr << "Number of parameter sets in config must be N=" << N
+                  << " for this compiled instance of the program. Exiting."
+                  << std::endl;
+        return 1;
+    }
+    for (unsigned int i = 0; i < N; ++i) {
+        Json::Value v = params[i];
+        RD.alpha[i] = v.get("alpha", 1.0).asDouble();
+        RD.D[i] = v.get("D", 0.01).asDouble();
+        RD.Delta[i] = v.get("Delta", 0.1).asDouble();
+    }
+
     RD.init();
 
     // Create a log directory if necessary, and exit on any failures.
@@ -196,20 +215,10 @@ int main (int argc, char **argv)
     unsigned int Agrid = v1.addVisualModel (new morph::HexGridVisual<FLT> (v1.shaderprog,
                                                                            RD.hg,
                                                                            spatOff,
-                                                                           &(RD.A),
+                                                                           &(RD.a[0]),
                                                                            zscale,
                                                                            cscale,
-                                                                           ColourMapType::Plasma));
-    // B. Offset in x direction to the right.
-    xzero += RD.hg->width();
-    spatOff = { xzero, 0.0, 0.0 };
-    unsigned int Bgrid = v1.addVisualModel (new morph::HexGridVisual<FLT> (v1.shaderprog,
-                                                                           RD.hg,
-                                                                           spatOff,
-                                                                           &(RD.B),
-                                                                           zscale,
-                                                                           cscale,
-                                                                           ColourMapType::Jet));
+                                                                           morph::ColourMapType::Plasma));
 #endif
 
     /*
@@ -224,12 +233,8 @@ int main (int argc, char **argv)
             // These two lines update the data for the two hex grids. That leads to
             // the CPU recomputing the OpenGL vertices for the visualizations.
             morph::VisualDataModel<FLT>* avm = (morph::VisualDataModel<FLT>*)v1.getVisualModel (Agrid);
-            avm->updateData (&(RD.A));
+            avm->updateData (&(RD.a[0]));
             avm->clearAutoscaleColour();
-
-            morph::VisualDataModel<FLT>* bvm = (morph::VisualDataModel<FLT>*)v1.getVisualModel (Bgrid);
-            bvm->updateData (&(RD.B));
-            bvm->clearAutoscaleColour();
 
             if (saveplots) {
                 if (vidframes) {
@@ -244,7 +249,7 @@ int main (int argc, char **argv)
         // rendering the graphics. After each simulation step, check if enough time
         // has elapsed for it to be necessary to call v1.render().
         std::chrono::steady_clock::duration sincerender = std::chrono::steady_clock::now() - lastrender;
-        if (duration_cast<milliseconds>(sincerender).count() > 17) { // 17 is about 60 Hz
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(sincerender).count() > 17) { // 17 is about 60 Hz
             glfwPollEvents();
             v1.render();
             lastrender = std::chrono::steady_clock::now();
