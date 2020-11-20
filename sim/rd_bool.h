@@ -82,7 +82,7 @@ public:
     std::vector<std::vector<Flt> > G;
 
     //! Default constructor
-    RD_Schnakenberg() : morph::RD_Base<Flt>() {}
+    RD_Bool() : morph::RD_Base<Flt>() {}
 
     //! Perform memory allocations, vector resizes and so on.
     void allocate() {

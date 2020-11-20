@@ -43,7 +43,7 @@ void savePngs (const std::string& logpath, const std::string& name,
 int main (int argc, char **argv)
 {
     if (argc < 2) {
-        cstd::err << "Usage: " << argv[0] << " /path/to/params.json" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " /path/to/params.json" << std::endl;
         return 1;
     }
     std::string paramsfile (argv[1]);
