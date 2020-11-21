@@ -46,6 +46,9 @@ typedef morph::VisualDataModel<FLT>* VdmPtr;
 static constexpr size_t N = 5;
 static constexpr size_t K = 5;
 
+//! Globally initialise bn::Random instance pointer
+template<> morph::bn::Random<N,K>* morph::bn::Random<N,K>::pInstance = 0;
+
 int main (int argc, char **argv)
 {
     if (argc < 2) {
@@ -240,7 +243,7 @@ int main (int argc, char **argv)
             // the CPU recomputing the OpenGL vertices for the visualizations.
             for (unsigned int i = 0; i < N; ++i) {
                 VdmPtr avm = (VdmPtr)v1.getVisualModel (grids[i]);
-                avm->updateData (&(RD.a[0]));
+                avm->updateData (&(RD.a[i]));
                 avm->clearAutoscaleColour();
             }
 
@@ -275,6 +278,7 @@ int main (int argc, char **argv)
     std::string tnow = morph::Tools::timeNow();
     conf.set ("sim_ran_at_time", tnow.substr(0,tnow.size()-1));
     conf.set ("hextohex_d", RD.hextohex_d);
+    conf.set ("final_genome", RD.genome.str());
     conf.set ("dt", RD.get_dt());
     if (argc > 0) { conf.set("argv0", argv[0]); }
     if (argc > 1) { conf.set("argv1", argv[1]); }

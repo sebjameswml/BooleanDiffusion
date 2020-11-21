@@ -107,6 +107,7 @@ public:
         this->zero_vector_array_vector (this->grad_a, N);
         //this->noiseify_vector_vector (this->a, this->initmasks);
         this->a[0][0] = 1.0f;
+        this->a[1][0] = 0.0f;
 
         this->genome.randomize();
     }
@@ -126,6 +127,8 @@ public:
         }
     }
 
+    static constexpr bool debug_compute = false;
+
     Flt sigmoid (Flt _a) { return (Flt{1} / (Flt{1} + std::exp(-_a))); }
 
     //! Compute inputs for the gene regulatory network, its next developed step (for
@@ -139,11 +142,15 @@ public:
             for (size_t i = 0; i < N; ++i) {
                 if (this->sigmoid(a[i][h]) > Flt{0.5}) { s |= 0x1 << i; }
             }
-            std::cout << "Start state for hex " << h << " is " << morph::bn::GeneNet<N,K>::state_str(s) << std::endl;
+            if constexpr (debug_compute==true) {
+                std::cout << "Start state for hex " << h << " is " << morph::bn::GeneNet<N,K>::state_str(s) << std::endl;
+            }
             // Now have the current state, see what the next state is
             this->grn.develop (s, this->genome);
-            std::cout << "Next state for hex  " << h << " is             " << morph::bn::GeneNet<N,K>::state_str(s) << std::endl;
-            //std::cout << "That means G[][h=" << h << "] = ";
+            if constexpr (debug_compute==true) {
+                std::cout << "Next state for hex  " << h << " is             " << morph::bn::GeneNet<N,K>::state_str(s) << std::endl;
+                //std::cout << "That means G[][h=" << h << "] = ";
+            }
             // Now state contains the 'next state'
             for (size_t i = 0; i < N; ++i) {
                 this->G[i][h] = ((s & 1<<i) ? Flt{1} : Flt{0});
@@ -161,8 +168,10 @@ public:
         for (unsigned int h=0; h<this->nhex; ++h) {
             Flt term1 = this->D[i] * lap_a[h];
             Flt term2 = - this->alpha[i] * a_[h];
-            Flt term3 = this->Delta[i] * this->G[i][h]
-            std::cout << "diffn term: " << term1 << ", decay term: " << term2 << " grn term: " << term3 << std::endl;
+            Flt term3 = this->Delta[i] * this->G[i][h];
+            if constexpr (debug_compute==true) {
+                std::cout << "diffn term: " << term1 << ", decay term: " << term2 << " grn term: " << term3 << std::endl;
+            }
             dadt[h] = term1 + term2 + term3;
         }
     }
@@ -224,7 +233,9 @@ public:
                 for (unsigned int h=0; h<this->nhex; ++h) {
                     Flt delta_a = ((K1[h] + 2.0 * (K2[h] + K3[h]) + K4[h])/(Flt)6.0);
                     this->a[i][h] += delta_a;
-                    std::cout << "For hex " << h << ", added " << delta_a << " to get " << a[i][h] << std::endl;
+                    if constexpr (debug_compute == true) {
+                        std::cout << "For hex " << h << ", added " << delta_a << " to get " << a[i][h] << std::endl;
+                    }
                 }
             }
         }
