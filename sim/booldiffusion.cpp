@@ -22,6 +22,7 @@
 #ifdef COMPILE_PLOTTING
 # include <morph/Visual.h>
 # include <morph/HexGridVisual.h>
+# include <morph/GraphVisual.h>
 # include <morph/ColourMap.h>
 # include <morph/VisualDataModel.h>
 # include <morph/Scale.h>
@@ -43,8 +44,8 @@ typedef morph::VisualDataModel<FLT>* VdmPtr;
 #include <morph/Config.h>
 
 // N, K are hard defined at global scope
-static constexpr size_t N = 5;
-static constexpr size_t K = 5;
+static constexpr size_t N = 2;
+static constexpr size_t K = 2;
 
 //! Globally initialise bn::Random instance pointer
 template<> morph::bn::Random<N,K>* morph::bn::Random<N,K>::pInstance = 0;
@@ -127,18 +128,8 @@ int main (int argc, char **argv)
     // Set a dark blue background (black is the default). This value has the order
     // 'RGBA', though the A(alpha) makes no difference.
     v1.bgcolour = {0.0f, 0.0f, 0.2f, 1.0f};
-    // You can tweak the near and far clipping planes
-    v1.zNear = 0.001;
-    v1.zFar = 20;
-    // And the field of view of the visual scene.
-    v1.fov = 45;
     // You can lock movement of the scene
     v1.sceneLocked = conf.getBool ("sceneLocked", false);
-    // You can set the default scene x/y/z offsets
-    v1.setZDefault (conf.getFloat ("z_default", -5.0f));
-    v1.setSceneTransXY (conf.getFloat ("x_default", 0.0f),
-                        conf.getFloat ("y_default", 0.0f));
-    // Make this larger to "scroll in and out of the image" faster
     v1.scenetrans_stepsize = 0.5;
 
     // if using plotting, then set up the render clock
@@ -177,6 +168,10 @@ int main (int argc, char **argv)
     }
 
     RD.init();
+    // After init, genome is randomized. To set from a previous state, do so here.
+    // Set the funky genome
+    //RD.genome = {0xb646dd22,0x76617edc,0x7046bfaa,0x58da51aa,0x13393d22};
+    std::cout << RD.genome.table() << std::endl;
 
     // Create a log directory if necessary, and exit on any failures.
     if (morph::Tools::dirExists (logpath) == false) {
@@ -208,26 +203,70 @@ int main (int argc, char **argv)
 
     // Spatial offset, for positioning of HexGridVisuals
     morph::Vector<float> spatOff;
-    float xzero = 0.0f;
+    float xzero = 0.9f;
 
     // A. Offset in x direction to the left.
-    xzero -= 0.5*RD.hg->width();
-    spatOff = { xzero, 0.0, 0.0 };
+    spatOff = { 1.4f, xzero, 0.0 };
     // Z position scaling - how hilly/bumpy the visual will be.
     std::array<unsigned int, N> grids;
+    v1.setCurrent();
     for (unsigned int i = 0; i < N; ++i) {
         morph::Scale<FLT> zscale; zscale.setParams (0.2f, 0.0f);
         // The second is the colour scaling. Set this to autoscale.
         morph::Scale<FLT> cscale; cscale.do_autoscale = true;
-        grids[i] = v1.addVisualModel (new morph::HexGridVisual<FLT> (v1.shaderprog,
-                                                                     RD.hg,
-                                                                     spatOff,
-                                                                     &(RD.a[i]),
-                                                                     zscale,
-                                                                     cscale,
-                                                                     morph::ColourMapType::Jet));
-        spatOff[0] += (3.0f * conf.getFloat ("ellipse_a", 0.8f));
+        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog,
+                                                                        RD.hg,
+                                                                        spatOff,
+                                                                        &(RD.a[i]),
+                                                                        zscale,
+                                                                        cscale,
+                                                                        morph::ColourMapType::Jet);
+        grids[i] = v1.addVisualModel (hgv);
+        spatOff[1] -= (3.0f * conf.getFloat ("ellipse_b", 0.8f));
     }
+
+    // Graph sum[a(t)] for each a
+    // v2.setCurrent();
+    spatOff = { 0.0f, 0.0f, 0.0 };
+    morph::GraphVisual<FLT>* graph = new morph::GraphVisual<FLT> (v1.shaderprog, v1.tshaderprog, spatOff);
+    graph->setdarkbg(); // colours axes and text
+    graph->twodimensional = false;
+    graph->setlimits (0, steps, 0, 0.05);
+    graph->policy = morph::stylepolicy::markers;
+    graph->ylabel = "mean(a)";
+    graph->xlabel = "Sim time";
+    for (unsigned int i = 0; i < N; ++i) {
+        // What's the absc and data? absc is time, so 0 to steps. data is as yet unknown.
+        std::stringstream ss;
+        char gc = 'a';
+        gc+=i;
+        ss << "Gene " << gc;
+        graph->prepdata (ss.str());
+    }
+    graph->finalize();
+    v1.addVisualModel (static_cast<morph::VisualModel*>(graph));
+
+    // Graph to probe hex 0
+    int hexidx = 0;
+    spatOff = { 0.0f, -1.4f, 0.0 };
+    morph::GraphVisual<FLT>* graph2 = new morph::GraphVisual<FLT> (v1.shaderprog, v1.tshaderprog, spatOff);
+    graph2->setdarkbg(); // colours axes and text
+    graph2->twodimensional = false;
+    graph2->setlimits (0, steps, 0, 0.05);
+    graph2->policy = morph::stylepolicy::markers;
+    graph2->ylabel = "a[gene][0]";
+    graph2->xlabel = "Sim time";
+    for (unsigned int i = 0; i < N; ++i) {
+        // What's the absc and data? absc is time, so 0 to steps. data is as yet unknown.
+        std::stringstream ss;
+        char gc = 'a';
+        gc+=i;
+        ss << "Gene " << gc;
+        graph2->prepdata (ss.str());
+    }
+    graph2->finalize();
+    v1.addVisualModel (static_cast<morph::VisualModel*>(graph2));
+
 #endif
 
     /*
@@ -235,15 +274,22 @@ int main (int argc, char **argv)
      */
 
     bool finished = false;
+    //std::array<std::vector<FLT>, N> sum_a;
+    //std::vector<float> simtime;
     while (finished == false) {
         RD.step();
 #ifdef COMPILE_PLOTTING
         if ((RD.stepCount % plotevery) == 0) {
             // These two lines update the data for the two hex grids. That leads to
             // the CPU recomputing the OpenGL vertices for the visualizations.
+            morph::gl::Util::checkError (__FILE__, __LINE__);
             for (unsigned int i = 0; i < N; ++i) {
                 VdmPtr avm = (VdmPtr)v1.getVisualModel (grids[i]);
-                avm->updateData (&(RD.a[i]));
+                morph::gl::Util::checkError (__FILE__, __LINE__);
+                avm->updateData (&(RD.a[i])); // First call to updateData.
+                std::stringstream ee;
+                ee << "a["<<i<<"] " << __FILE__;
+                morph::gl::Util::checkError (ee.str().c_str(), __LINE__);
                 avm->clearAutoscaleColour();
             }
 
@@ -263,10 +309,20 @@ int main (int argc, char **argv)
         if (std::chrono::duration_cast<std::chrono::milliseconds>(sincerender).count() > 17) { // 17 is about 60 Hz
             glfwPollEvents();
             v1.render();
+            //v2.render();
             lastrender = std::chrono::steady_clock::now();
         }
 #endif
-        if ((RD.stepCount % logevery) == 0) { RD.save(); }
+        if ((RD.stepCount % logevery) == 0) {
+#ifdef COMPILE_PLOTTING
+            // Update the graph of sum(a)
+            for (unsigned int i = 0; i < N; ++i) {
+                graph->append ((float)RD.stepCount, RD.sum_a(i)/(FLT)RD.nhex, i);
+                graph2->append ((float)RD.stepCount, RD.a[i][hexidx], i);
+            }
+#endif
+            RD.save();
+        }
         if (RD.stepCount > steps) { finished = true; }
     }
 

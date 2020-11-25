@@ -2,18 +2,16 @@
 /*
  *  This file is part of BooleanDiffusion.
  *
- *  BarrelEmerge is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ *  BooleanDiffusion is free software: you can redistribute it and/or modify it under
+ *  the terms of the GNU General Public License as published by the Free Software
+ *  Foundation, either version 3 of the License, or (at your option) any later version.
  *
- *  BarrelEmerge is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  BooleanDiffusion is distributed in the hope that it will be useful, but WITHOUT ANY
+ *  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ *  PARTICULAR PURPOSE.  See the GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with BarrelEmerge.  If not, see <https://www.gnu.org/licenses/>.
+ *  You should have received a copy of the GNU General Public License along with
+ *  BooleanDiffusion.  If not, see <https://www.gnu.org/licenses/>.
  */
 #endif
 
@@ -73,7 +71,7 @@ public:
     alignas(alignof(std::vector<Flt>))
     std::vector<Flt> D;
 
-    //! Delta_i parameters (accrection rates, when gene is in expressing state)
+    //! Delta_i parameters (accretion rates, when gene is in expressing state)
     alignas(alignof(std::vector<Flt>))
     std::vector<Flt> Delta;
 
@@ -106,8 +104,7 @@ public:
         this->zero_vector_vector (this->G, N);
         this->zero_vector_array_vector (this->grad_a, N);
         //this->noiseify_vector_vector (this->a, this->initmasks);
-        this->a[0][0] = 1.0f;
-        this->a[1][0] = 0.0f;
+        this->a[0][14] = 1.0f;
 
         this->genome.randomize();
     }
@@ -125,6 +122,16 @@ public:
             path << "/a_" << i;
             data.add_contained_vals (path.str().c_str(), this->a[i]);
         }
+    }
+
+    //! Compute the sum of variable a[_i] (FIXME: Make 'a' a vVector
+    Flt sum_a (size_t _i)
+    {
+        Flt sum = Flt{0};
+        for (auto _a : this->a[_i]) {
+            sum += _a;
+        }
+        return sum;
     }
 
     static constexpr bool debug_compute = false;
