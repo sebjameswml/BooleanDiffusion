@@ -79,6 +79,11 @@ public:
     alignas(alignof(std::vector<std::vector<Flt> >))
     std::vector<std::vector<Flt> > G;
 
+    //! The state of the gene network at each hex, computed by calling develop() on the
+    //! state constructed by looking at the expression levels of each gene, a[i]
+    alignas(alignof(std::vector<morph::bn::state_t>))
+    std::vector<morph::bn::state_t> s;
+
     //! Default constructor
     RD_Bool() : morph::RD_Base<Flt>() {}
 
@@ -95,6 +100,7 @@ public:
         this->resize_vector_param (this->alpha, N);
         this->resize_vector_param (this->D, N);
         this->resize_vector_param (this->Delta, N);
+        this->s.resize (this->nhex, 0);
     }
 
     //! Initilization and any one-time computations required of the model.
@@ -104,9 +110,17 @@ public:
         this->zero_vector_vector (this->G, N);
         this->zero_vector_array_vector (this->grad_a, N);
         //this->noiseify_vector_vector (this->a, this->initmasks);
+        this->a[0][13] = 1.0f;
         this->a[0][14] = 1.0f;
+        this->a[0][15] = 1.0f;
 
         this->genome.randomize();
+    }
+
+    //! Analyse the basins of attraction, making sets of the states in each basin, so
+    //! that hexes can be coloured by basin of attraction membership
+    void analyse_basins()
+    {
     }
 
     void save()
@@ -134,9 +148,10 @@ public:
         return sum;
     }
 
-    static constexpr bool debug_compute = false;
+    static constexpr bool debug_compute = true;
 
-    Flt sigmoid (Flt _a) { return (Flt{1} / (Flt{1} + std::exp(-_a))); }
+    Flt k = Flt{1.0};
+    Flt sigmoid (Flt _a) { return (Flt{1} / (Flt{1} + std::exp(-this->k*_a))); }
 
     //! Compute inputs for the gene regulatory network, its next developed step (for
     //! each hex) and its outputs, storing these in this->G
@@ -144,26 +159,20 @@ public:
     {
         // 1. Compute sigma(a_i) in each hex. In each hex, the state may be different
         for (unsigned int h=0; h<this->nhex; ++h) {
-            morph::bn::state_t s = 0x0;
+            this->s[h] = 0x0;
             // Check each gene to find out if its concentration is above threshold.
             for (size_t i = 0; i < N; ++i) {
-                if (this->sigmoid(a[i][h]) > Flt{0.5}) { s |= 0x1 << i; }
-            }
-            if constexpr (debug_compute==true) {
-                std::cout << "Start state for hex " << h << " is " << morph::bn::GeneNet<N,K>::state_str(s) << std::endl;
+                if (this->sigmoid(a[i][h]) > Flt{0.5}) { s[h] |= 0x1 << i; }
             }
             // Now have the current state, see what the next state is
-            this->grn.develop (s, this->genome);
-            if constexpr (debug_compute==true) {
-                std::cout << "Next state for hex  " << h << " is             " << morph::bn::GeneNet<N,K>::state_str(s) << std::endl;
-                //std::cout << "That means G[][h=" << h << "] = ";
-            }
-            // Now state contains the 'next state'
+            this->grn.develop (this->s[h], this->genome);
+            /*
+            // Now state contains the 'next state'. Record it in G. FIXME: Do I need to
+            // hold G? Could instead keep state_t s and decode it in compute_dadt.
             for (size_t i = 0; i < N; ++i) {
-                this->G[i][h] = ((s & 1<<i) ? Flt{1} : Flt{0});
-                //std::cout << this->G[i][h] << ",";
+                this->G[i][h] = ((this->s[h] & 1<<i) ? Flt{1} : Flt{0});
             }
-            //std::cout << std::endl;
+            */
         }
     }
 
@@ -175,10 +184,7 @@ public:
         for (unsigned int h=0; h<this->nhex; ++h) {
             Flt term1 = this->D[i] * lap_a[h];
             Flt term2 = - this->alpha[i] * a_[h];
-            Flt term3 = this->Delta[i] * this->G[i][h];
-            if constexpr (debug_compute==true) {
-                std::cout << "diffn term: " << term1 << ", decay term: " << term2 << " grn term: " << term3 << std::endl;
-            }
+            Flt term3 = (this->s[h] & 1<<i) ? this->Delta[i] : Flt{0};
             dadt[h] = term1 + term2 + term3;
         }
     }
@@ -240,9 +246,6 @@ public:
                 for (unsigned int h=0; h<this->nhex; ++h) {
                     Flt delta_a = ((K1[h] + 2.0 * (K2[h] + K3[h]) + K4[h])/(Flt)6.0);
                     this->a[i][h] += delta_a;
-                    if constexpr (debug_compute == true) {
-                        std::cout << "For hex " << h << ", added " << delta_a << " to get " << a[i][h] << std::endl;
-                    }
                 }
             }
         }

@@ -38,14 +38,15 @@ void savePngs (const std::string& logpath, const std::string& name,
 }
 // A convenience typedef
 typedef morph::VisualDataModel<FLT>* VdmPtr;
+typedef morph::VisualDataModel<morph::bn::state_t>* VdmStatePtr;
 #endif
 
 #include <morph/tools.h>
 #include <morph/Config.h>
 
 // N, K are hard defined at global scope
-static constexpr size_t N = 2;
-static constexpr size_t K = 2;
+static constexpr size_t N = 5;
+static constexpr size_t K = 5;
 
 //! Globally initialise bn::Random instance pointer
 template<> morph::bn::Random<N,K>* morph::bn::Random<N,K>::pInstance = 0;
@@ -173,6 +174,9 @@ int main (int argc, char **argv)
     //RD.genome = {0xb646dd22,0x76617edc,0x7046bfaa,0x58da51aa,0x13393d22};
     std::cout << RD.genome.table() << std::endl;
 
+    // Set the steepness of the sigmoid
+    RD.k = 1.0f;
+
     // Create a log directory if necessary, and exit on any failures.
     if (morph::Tools::dirExists (logpath) == false) {
         morph::Tools::createDir (logpath);
@@ -221,9 +225,27 @@ int main (int argc, char **argv)
                                                                         zscale,
                                                                         cscale,
                                                                         morph::ColourMapType::Jet);
+        //hgv->addLabel ("A", {0.0f,0.0f,0.01f}, morph::colour::white);
+        // Need something like:
+        //hgv->finalize();
+
         grids[i] = v1.addVisualModel (hgv);
         spatOff[1] -= (3.0f * conf.getFloat ("ellipse_b", 0.8f));
     }
+
+    morph::Scale<morph::bn::state_t, float> zscale; zscale.setParams (0.2f, 0.0f);
+    // What params to set on colour scale to ensure that 0 is min and 2^N is max?
+    morph::Scale<morph::bn::state_t, float> cscale;
+    cscale.compute_autoscale (0, static_cast<morph::bn::state_t>(1<<N));
+    morph::HexGridVisual<morph::bn::state_t>* hgv1 = new morph::HexGridVisual<morph::bn::state_t> (v1.shaderprog,
+                                                                                                   RD.hg,
+                                                                                                   spatOff,
+                                                                                                   &(RD.s),
+                                                                                                   zscale,
+                                                                                                   cscale,
+                                                                                                   morph::ColourMapType::Jet);
+    unsigned int grid_state = v1.addVisualModel (hgv1);
+
 
     // Graph sum[a(t)] for each a
     // v2.setCurrent();
@@ -252,7 +274,7 @@ int main (int argc, char **argv)
     morph::GraphVisual<FLT>* graph2 = new morph::GraphVisual<FLT> (v1.shaderprog, v1.tshaderprog, spatOff);
     graph2->setdarkbg(); // colours axes and text
     graph2->twodimensional = false;
-    graph2->setlimits (0, steps, 0, 0.05);
+    graph2->setlimits (0, steps, 0, 1.0);
     graph2->policy = morph::stylepolicy::markers;
     graph2->ylabel = "a[gene][0]";
     graph2->xlabel = "Sim time";
@@ -288,10 +310,17 @@ int main (int argc, char **argv)
                 morph::gl::Util::checkError (__FILE__, __LINE__);
                 avm->updateData (&(RD.a[i])); // First call to updateData.
                 std::stringstream ee;
+#if 0
                 ee << "a["<<i<<"] " << __FILE__;
                 morph::gl::Util::checkError (ee.str().c_str(), __LINE__);
+#endif
                 avm->clearAutoscaleColour();
             }
+
+            VdmStatePtr avm = (VdmStatePtr)v1.getVisualModel (grid_state);
+            std::cout << "RD.s[0] = " << (unsigned int)RD.s[0]
+                      << " = " << morph::bn::GeneNet<N,K>::state_str(RD.s[0]) << std::endl;
+            avm->updateData (&(RD.s)); // First call to updateData.
 
             if (saveplots) {
                 if (vidframes) {
@@ -318,7 +347,7 @@ int main (int argc, char **argv)
             // Update the graph of sum(a)
             for (unsigned int i = 0; i < N; ++i) {
                 graph->append ((float)RD.stepCount, RD.sum_a(i)/(FLT)RD.nhex, i);
-                graph2->append ((float)RD.stepCount, RD.a[i][hexidx], i);
+                graph2->append ((float)RD.stepCount, RD.sigmoid(RD.a[i][hexidx]), i);
             }
 #endif
             RD.save();
