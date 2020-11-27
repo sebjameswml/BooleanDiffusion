@@ -75,14 +75,23 @@ public:
     alignas(alignof(std::vector<Flt>))
     std::vector<Flt> Delta;
 
-    //! To hold the output of the gene network multiplied by Delta. This is a per-hex result
+    //! To hold a value to say if Gene[i] is above the input expression threshold or
+    //! not. Useful for graphing.
     alignas(alignof(std::vector<std::vector<Flt> >))
     std::vector<std::vector<Flt> > G;
+
+    //! Holds the output expression value. For graphing.
+    alignas(alignof(std::vector<std::vector<Flt> >))
+    std::vector<std::vector<Flt> > H;
 
     //! The state of the gene network at each hex, computed by calling develop() on the
     //! state constructed by looking at the expression levels of each gene, a[i]
     alignas(alignof(std::vector<morph::bn::state_t>))
     std::vector<morph::bn::state_t> s;
+
+    //! The threshold for it to be considered that a gene is being expressed and is
+    //! present.
+    Flt expression_threshold = 0.5f;
 
     //! Default constructor
     RD_Bool() : morph::RD_Base<Flt>() {}
@@ -96,6 +105,7 @@ public:
         // a member of this class (via its parent, RD_Base)
         this->resize_vector_vector (this->a, N);
         this->resize_vector_vector (this->G, N);
+        this->resize_vector_vector (this->H, N);
         this->resize_vector_array_vector (this->grad_a, N);
         this->resize_vector_param (this->alpha, N);
         this->resize_vector_param (this->D, N);
@@ -108,6 +118,7 @@ public:
     {
         this->zero_vector_vector (this->a, N);
         this->zero_vector_vector (this->G, N);
+        this->zero_vector_vector (this->H, N);
         this->zero_vector_array_vector (this->grad_a, N);
         //this->noiseify_vector_vector (this->a, this->initmasks);
         this->a[0][13] = 1.0f;
@@ -162,17 +173,18 @@ public:
             this->s[h] = 0x0;
             // Check each gene to find out if its concentration is above threshold.
             for (size_t i = 0; i < N; ++i) {
-                if (this->sigmoid(a[i][h]) > Flt{0.5}) { s[h] |= 0x1 << i; }
+                Flt tr_a = a[i][h];//this->sigmoid(a[i][h]);
+                if (tr_a > this->expression_threshold) {
+                    s[h] |= 0x1 << i;
+                    // G holds values of a that are above threshold. Used later to
+                    // modulate gene production.
+                    this->G[i][h] = this->a[i][h]; // This is the input to the GRN
+                } else {
+                    this->G[i][h] = Flt{0};
+                }
             }
             // Now have the current state, see what the next state is
             this->grn.develop (this->s[h], this->genome);
-            /*
-            // Now state contains the 'next state'. Record it in G. FIXME: Do I need to
-            // hold G? Could instead keep state_t s and decode it in compute_dadt.
-            for (size_t i = 0; i < N; ++i) {
-                this->G[i][h] = ((this->s[h] & 1<<i) ? Flt{1} : Flt{0});
-            }
-            */
         }
     }
 
@@ -184,7 +196,20 @@ public:
         for (unsigned int h=0; h<this->nhex; ++h) {
             Flt term1 = this->D[i] * lap_a[h];
             Flt term2 = - this->alpha[i] * a_[h];
-            Flt term3 = (this->s[h] & 1<<i) ? this->Delta[i] : Flt{0};
+
+            // s[h] is the current state of 'expressingness' for each gene, but should
+            // be modulated by the levels of reagents available. G[i][h] contains the
+            // input reagent levels of which we choose the minimum one (? or an
+            // average?) to modulate how much those genes that are being expressed ARE
+            // actually being expressed.
+            Flt min_G = 1e10;
+            for (unsigned int j = 0; j<N; ++j) {
+                min_G = (this->G[j][h] > Flt{0} && this->G[j][h] < min_G) ? this->G[j][h] : min_G;
+            }
+            // Term 3 is the output expression for gene i
+            Flt term3 = (this->s[h] & 1<<i) ? (this->Delta[i] * min_G * min_G) : Flt{0};
+            this->H[i][h] = term3;
+
             dadt[h] = term1 + term2 + term3;
         }
     }
@@ -194,7 +219,6 @@ public:
     {
         this->stepCount++;
 
-        // Compute the genenet in each hex to find out what this->G should contain.
         this->compute_genenet();
 
         for (unsigned int i=0; i<N; ++i) {

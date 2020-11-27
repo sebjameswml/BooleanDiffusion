@@ -32,7 +32,7 @@ void savePngs (const std::string& logpath, const std::string& name,
                unsigned int frameN, morph::Visual& v) {
     std::stringstream ff1;
     ff1 << logpath << "/" << name<< "_";
-    ff1 << std::setw(5) << std::setfill('0') << frameN;
+    ff1 << std::setw(7) << std::setfill('0') << frameN;
     ff1 << ".png";
     v.saveImage (ff1.str());
 }
@@ -45,8 +45,8 @@ typedef morph::VisualDataModel<morph::bn::state_t>* VdmStatePtr;
 #include <morph/Config.h>
 
 // N, K are hard defined at global scope
-static constexpr size_t N = 5;
-static constexpr size_t K = 5;
+static constexpr size_t N = NGENES;
+static constexpr size_t K = NINPUTS;
 
 //! Globally initialise bn::Random instance pointer
 template<> morph::bn::Random<N,K>* morph::bn::Random<N,K>::pInstance = 0;
@@ -119,8 +119,9 @@ int main (int argc, char **argv)
     unsigned int framecount = 0;
 
     // Window width and height
-    const unsigned int win_width = conf.getUInt ("win_width", 1025UL);
-    unsigned int win_height_default = static_cast<unsigned int>(0.8824f * (float)win_width);
+    const unsigned int win_width = conf.getUInt ("win_width", 1600UL);
+    //unsigned int win_height_default = static_cast<unsigned int>(0.8824f * (float)win_width);
+    unsigned int win_height_default = static_cast<unsigned int>(0.5f * (float)win_width);
     const unsigned int win_height = conf.getUInt ("win_height", win_height_default);
 
     // Set up the morph::Visual object which provides the visualization scene (and
@@ -167,6 +168,7 @@ int main (int argc, char **argv)
         RD.D[i] = v.get("D", 0.01).asDouble();
         RD.Delta[i] = v.get("Delta", 0.1).asDouble();
     }
+    RD.expression_threshold = conf.getDouble ("expression_threshold", 0.5f);
 
     RD.init();
     // After init, genome is randomized. To set from a previous state, do so here.
@@ -207,10 +209,10 @@ int main (int argc, char **argv)
 
     // Spatial offset, for positioning of HexGridVisuals
     morph::Vector<float> spatOff;
-    float xzero = 0.9f;
+    float yzero = 0.9f;
 
     // A. Offset in x direction to the left.
-    spatOff = { 1.4f, xzero, 0.0 };
+    spatOff = { 1.4f, yzero, 0.0 };
     // Z position scaling - how hilly/bumpy the visual will be.
     std::array<unsigned int, N> grids;
     v1.setCurrent();
@@ -218,18 +220,66 @@ int main (int argc, char **argv)
         morph::Scale<FLT> zscale; zscale.setParams (0.2f, 0.0f);
         // The second is the colour scaling. Set this to autoscale.
         morph::Scale<FLT> cscale; cscale.do_autoscale = true;
-        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog,
+        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
                                                                         RD.hg,
                                                                         spatOff,
                                                                         &(RD.a[i]),
                                                                         zscale,
                                                                         cscale,
                                                                         morph::ColourMapType::Jet);
-        //hgv->addLabel ("A", {0.0f,0.0f,0.01f}, morph::colour::white);
-        // Need something like:
-        //hgv->finalize();
+        std::stringstream ss;
+        char gc = 'a';
+        gc+=i; ss << gc;
+        hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
 
         grids[i] = v1.addVisualModel (hgv);
+        spatOff[1] -= (3.0f * conf.getFloat ("ellipse_b", 0.8f));
+    }
+    morph::Vector<float> stateGraph = spatOff;
+
+    spatOff = { 2.2f, yzero, 0.0 };
+    std::array<unsigned int, N> overthresh;
+    for (unsigned int i = 0; i < N; ++i) {
+        morph::Scale<FLT> zscale; zscale.setParams (0.0f, 0.0f);
+        // The second is the colour scaling. Set this to autoscale.
+        morph::Scale<FLT> cscale; cscale.compute_autoscale (FLT{0}, FLT{1});
+        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
+                                                                        RD.hg,
+                                                                        spatOff,
+                                                                        &(RD.G[i]),
+                                                                        zscale,
+                                                                        cscale,
+                                                                        morph::ColourMapType::Jet);
+        std::stringstream ss;
+        char gc = 'a';
+        gc+=i;
+        ss << "(>thres) " << gc;
+        hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
+
+        overthresh[i] = v1.addVisualModel (hgv);
+        spatOff[1] -= (3.0f * conf.getFloat ("ellipse_b", 0.8f));
+    }
+
+    spatOff = { 3.0f, yzero, 0.0 };
+    std::array<unsigned int, N> expressing;
+    for (unsigned int i = 0; i < N; ++i) {
+        morph::Scale<FLT> zscale; zscale.setParams (0.0f, 0.0f);
+        // The second is the colour scaling. Set this to autoscale.
+        morph::Scale<FLT> cscale; cscale.compute_autoscale (FLT{0}, FLT{1});
+        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
+                                                                        RD.hg,
+                                                                        spatOff,
+                                                                        &(RD.H[i]),
+                                                                        zscale,
+                                                                        cscale,
+                                                                        morph::ColourMapType::Jet);
+        std::stringstream ss;
+        char gc = 'a';
+        gc+=i;
+        ss << "(expr) " << gc;
+        hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
+
+        expressing[i] = v1.addVisualModel (hgv);
         spatOff[1] -= (3.0f * conf.getFloat ("ellipse_b", 0.8f));
     }
 
@@ -237,13 +287,15 @@ int main (int argc, char **argv)
     // What params to set on colour scale to ensure that 0 is min and 2^N is max?
     morph::Scale<morph::bn::state_t, float> cscale;
     cscale.compute_autoscale (0, static_cast<morph::bn::state_t>(1<<N));
-    morph::HexGridVisual<morph::bn::state_t>* hgv1 = new morph::HexGridVisual<morph::bn::state_t> (v1.shaderprog,
+    morph::HexGridVisual<morph::bn::state_t>* hgv1 = new morph::HexGridVisual<morph::bn::state_t> (v1.shaderprog, v1.tshaderprog,
                                                                                                    RD.hg,
-                                                                                                   spatOff,
+                                                                                                   stateGraph,
                                                                                                    &(RD.s),
                                                                                                    zscale,
                                                                                                    cscale,
                                                                                                    morph::ColourMapType::Jet);
+
+    hgv1->addLabel ("state", {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
     unsigned int grid_state = v1.addVisualModel (hgv1);
 
 
@@ -270,7 +322,7 @@ int main (int argc, char **argv)
 
     // Graph to probe hex 0
     int hexidx = 0;
-    spatOff = { 0.0f, -1.4f, 0.0 };
+    spatOff = { -1.6f, 0.0f, 0.0 };
     morph::GraphVisual<FLT>* graph2 = new morph::GraphVisual<FLT> (v1.shaderprog, v1.tshaderprog, spatOff);
     graph2->setdarkbg(); // colours axes and text
     graph2->twodimensional = false;
@@ -309,12 +361,18 @@ int main (int argc, char **argv)
                 VdmPtr avm = (VdmPtr)v1.getVisualModel (grids[i]);
                 morph::gl::Util::checkError (__FILE__, __LINE__);
                 avm->updateData (&(RD.a[i])); // First call to updateData.
-                std::stringstream ee;
 #if 0
+                std::stringstream ee;
                 ee << "a["<<i<<"] " << __FILE__;
                 morph::gl::Util::checkError (ee.str().c_str(), __LINE__);
 #endif
                 avm->clearAutoscaleColour();
+
+                avm = (VdmPtr)v1.getVisualModel (overthresh[i]);
+                avm->updateData (&(RD.G[i]));
+                avm = (VdmPtr)v1.getVisualModel (expressing[i]);
+                avm->updateData (&(RD.H[i]));
+                //std::cout << "G["<<i<<"][0] = " << RD.G[i][0] << std::endl;
             }
 
             VdmStatePtr avm = (VdmStatePtr)v1.getVisualModel (grid_state);

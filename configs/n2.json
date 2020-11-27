@@ -1,9 +1,9 @@
 {
     "sect_global" : "Global simulation parameters",
     "desc_steps" : "The number of steps to simulate for",
-    "steps" : 200000,
-    "logevery": 500,
-    "plotevery": 100,
+    "steps" : 10000,
+    "logevery": 1000,
+    "plotevery": 10,
     "saveplots": true,
     "overwrite_logs": true,
     "desc_hextohex_d" : "Hex to hex distance, determines num hexes",
@@ -19,8 +19,9 @@
     "ellipse_b" : 0.07,
 
     "sect_model_params" : "Boolean Diffusion Parameters",
+    "expression_threshold" : 0.05,
     "model_params": [
-        { "alpha" : 5, "D" : 0.05,  "Delta" : 0.1, "name" : "a" },
-        { "alpha" : 5, "D" : 0.0005, "Delta" : 0.1, "name" : "b" }
+        { "alpha" : 5, "D" : 0.05,  "Delta" : 10, "name" : "a" },
+        { "alpha" : 5, "D" : 0.0005, "Delta" : 10, "name" : "b" }
     ]
 }
