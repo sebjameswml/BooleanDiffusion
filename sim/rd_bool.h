@@ -151,14 +151,21 @@ public:
         this->gauss.gain = 1.0;
         this->gauss.sigma = 0.05;
         this->gauss.sigmasq = this->gauss.sigma * this->gauss.sigma;
-        this->gauss.x = 0;
+        this->gauss.x = 0.05;
         this->gauss.y = 0;
 
         // Only initializing a[0] here:
         for (auto h : this->hg->hexen) {
             Flt dsq = morph::MathAlgo::distance_sq<Flt> ({this->gauss.x, this->gauss.y}, {h.x, h.y});
             this->a[0][h.vi] = this->gauss.gain * std::exp (-dsq / (Flt{2} * this->gauss.sigmasq));
-            std::cout << "a[0]["<<h.vi<<"] = " << this->a[0][h.vi] << std::endl;
+            //std::cout << "a[0]["<<h.vi<<"] = " << this->a[0][h.vi] << std::endl;
+        }
+
+        // Only initializing a[1] here:
+        this->gauss.x = -0.05;
+        for (auto h : this->hg->hexen) {
+            Flt dsq = morph::MathAlgo::distance_sq<Flt> ({this->gauss.x, this->gauss.y}, {h.x, h.y});
+            this->a[1][h.vi] = this->gauss.gain * std::exp (-dsq / (Flt{2} * this->gauss.sigmasq));
         }
     }
 
@@ -239,12 +246,18 @@ public:
                 min_G = (this->G[j][h] > Flt{0} && this->G[j][h] < min_G) ? this->G[j][h] : min_G;
             }
             min_G = (min_G == 1e10) ? Flt{0} : min_G;
-            std::cout << "minG: " << min_G << std::endl;
+            //std::cout << "min_G: " << min_G << std::endl;
             // Term 3 is the output expression for gene i
             Flt term3 = (this->s[h] & 1<<i) ? (this->Delta[i] * min_G * min_G) : Flt{0};
             this->H[i][h] = term3;
 
             dadt[h] = term1 + term2 + term3;
+#if 0
+            if (h == 0) {
+                std::cout << "dadt[i][0] = " << term1 << " + " << term2 << " + " << term3 << " = " << dadt[h] << std::endl;
+                std::cout << " (a[i][0] = " << this->a[i][0] << ")\n";
+            }
+#endif
         }
     }
 

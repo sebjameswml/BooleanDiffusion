@@ -139,7 +139,7 @@ int main (int argc, char **argv)
 #endif
 
     /*
-     * Simulation instantiation
+     * Simulation instanciation
      */
 
     RD_Bool<FLT, N, K> RD;
@@ -240,7 +240,7 @@ int main (int argc, char **argv)
     spatOff = { 2.2f, yzero, 0.0 };
     std::array<unsigned int, N> overthresh;
     for (unsigned int i = 0; i < N; ++i) {
-        morph::Scale<FLT> zscale; zscale.setParams (0.0f, 0.0f);
+        morph::Scale<FLT> zscale; zscale.setParams (0.2f, 0.0f);
         // The second is the colour scaling. Set this to autoscale.
         morph::Scale<FLT> cscale; cscale.compute_autoscale (FLT{0}, FLT{1});
         morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
@@ -263,7 +263,7 @@ int main (int argc, char **argv)
     spatOff = { 3.0f, yzero, 0.0 };
     std::array<unsigned int, N> expressing;
     for (unsigned int i = 0; i < N; ++i) {
-        morph::Scale<FLT> zscale; zscale.setParams (0.0f, 0.0f);
+        morph::Scale<FLT> zscale; zscale.setParams (0.02f, 0.0f);
         // The second is the colour scaling. Set this to autoscale.
         morph::Scale<FLT> cscale; cscale.compute_autoscale (FLT{0}, FLT{1});
         morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
@@ -283,7 +283,7 @@ int main (int argc, char **argv)
         spatOff[1] -= (3.0f * conf.getFloat ("ellipse_b", 0.8f));
     }
 
-    morph::Scale<morph::bn::state_t, float> zscale; zscale.setParams (0.2f, 0.0f);
+    morph::Scale<morph::bn::state_t, float> zscale; zscale.setParams (0.0f, 0.0f);
     // What params to set on colour scale to ensure that 0 is min and 2^N is max?
     morph::Scale<morph::bn::state_t, float> cscale;
     cscale.compute_autoscale (0, static_cast<morph::bn::state_t>(1<<N));
@@ -360,7 +360,7 @@ int main (int argc, char **argv)
             for (unsigned int i = 0; i < N; ++i) {
                 VdmPtr avm = (VdmPtr)v1.getVisualModel (grids[i]);
                 avm->updateData (&(RD.a[i])); // First call to updateData.
-                std::cout << "a["<<i<<"][0] = " << RD.a[i][0] << std::endl;
+                //std::cout << "a["<<i<<"][0] = " << RD.a[i][0] << std::endl;
                 avm->clearAutoscale();
                 avm = (VdmPtr)v1.getVisualModel (overthresh[i]);
                 avm->updateData (&(RD.G[i]));
@@ -369,8 +369,8 @@ int main (int argc, char **argv)
             }
 
             VdmStatePtr avm = (VdmStatePtr)v1.getVisualModel (grid_state);
-            std::cout << "RD.s[0] = " << (unsigned int)RD.s[0]
-                      << " = " << morph::bn::GeneNet<N,K>::state_str(RD.s[0]) << std::endl;
+            //std::cout << "RD.s[0] = " << (unsigned int)RD.s[0]
+            //          << " = " << morph::bn::GeneNet<N,K>::state_str(RD.s[0]) << std::endl;
             avm->updateData (&(RD.s)); // First call to updateData.
 
             if (saveplots) {
@@ -394,6 +394,12 @@ int main (int argc, char **argv)
         }
 #endif
         if ((RD.stepCount % logevery) == 0) {
+
+            // Would need to do this for each and every hex. Then get, for each state
+            // hexmap, N 'inputs' hex maps. Do I really want or need that?
+            //std::array<state_t, N> inputs;
+            //morph::GeneNet<N,K>::setup_inputs (RD.s[?], inputs);
+
 #ifdef COMPILE_PLOTTING
             // Update the graph of sum(a)
             for (unsigned int i = 0; i < N; ++i) {
