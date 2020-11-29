@@ -305,7 +305,7 @@ int main (int argc, char **argv)
     morph::GraphVisual<FLT>* graph = new morph::GraphVisual<FLT> (v1.shaderprog, v1.tshaderprog, spatOff);
     graph->setdarkbg(); // colours axes and text
     graph->twodimensional = false;
-    graph->setlimits (0, steps, 0, 0.05);
+    graph->setlimits (0, steps, 0, 0.2);
     graph->policy = morph::stylepolicy::markers;
     graph->ylabel = "mean(a)";
     graph->xlabel = "Sim time";
@@ -359,20 +359,13 @@ int main (int argc, char **argv)
             morph::gl::Util::checkError (__FILE__, __LINE__);
             for (unsigned int i = 0; i < N; ++i) {
                 VdmPtr avm = (VdmPtr)v1.getVisualModel (grids[i]);
-                morph::gl::Util::checkError (__FILE__, __LINE__);
                 avm->updateData (&(RD.a[i])); // First call to updateData.
-#if 0
-                std::stringstream ee;
-                ee << "a["<<i<<"] " << __FILE__;
-                morph::gl::Util::checkError (ee.str().c_str(), __LINE__);
-#endif
-                avm->clearAutoscaleColour();
-
+                std::cout << "a["<<i<<"][0] = " << RD.a[i][0] << std::endl;
+                avm->clearAutoscale();
                 avm = (VdmPtr)v1.getVisualModel (overthresh[i]);
                 avm->updateData (&(RD.G[i]));
                 avm = (VdmPtr)v1.getVisualModel (expressing[i]);
                 avm->updateData (&(RD.H[i]));
-                //std::cout << "G["<<i<<"][0] = " << RD.G[i][0] << std::endl;
             }
 
             VdmStatePtr avm = (VdmStatePtr)v1.getVisualModel (grid_state);

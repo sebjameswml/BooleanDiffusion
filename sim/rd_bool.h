@@ -30,6 +30,7 @@
 #include <morph/Random.h>
 #include <morph/bn/GeneNet.h>
 #include <morph/bn/Genome.h>
+#include <morph/MathAlgo.h>
 
 #include <vector>
 #include <array>
@@ -40,6 +41,20 @@
 #include <sstream>
 #include <cmath>
 #include <iostream>
+
+/*!
+ * A small collection of parameters to define width and location of a symmetric
+ * (i.e. circular) 2D Gaussian.
+ */
+template <class Flt>
+struct GaussParams
+{
+    Flt gain;
+    Flt sigma;
+    Flt sigmasq;
+    Flt x;
+    Flt y;
+};
 
 /*!
  * Reaction diffusion system in which the reaction is an NK model (a Boolean gene
@@ -93,11 +108,15 @@ public:
     //! present.
     Flt expression_threshold = 0.5f;
 
+    //! Shape for init a
+    GaussParams<Flt> gauss;
+
     //! Default constructor
     RD_Bool() : morph::RD_Base<Flt>() {}
 
     //! Perform memory allocations, vector resizes and so on.
-    void allocate() {
+    void allocate()
+    {
         // Always call allocate() from the base class first.
         morph::RD_Base<Flt>::allocate();
         // Resize and zero-initialise the various containers. Note that the size of a
@@ -116,16 +135,31 @@ public:
     //! Initilization and any one-time computations required of the model.
     void init()
     {
-        this->zero_vector_vector (this->a, N);
         this->zero_vector_vector (this->G, N);
         this->zero_vector_vector (this->H, N);
         this->zero_vector_array_vector (this->grad_a, N);
-        //this->noiseify_vector_vector (this->a, this->initmasks);
-        this->a[0][13] = 1.0f;
-        this->a[0][14] = 1.0f;
-        this->a[0][15] = 1.0f;
+
+        this->zero_vector_vector (this->a, N);
+        this->init_a();
 
         this->genome.randomize();
+    }
+
+
+    void init_a()
+    {
+        this->gauss.gain = 1.0;
+        this->gauss.sigma = 0.05;
+        this->gauss.sigmasq = this->gauss.sigma * this->gauss.sigma;
+        this->gauss.x = 0;
+        this->gauss.y = 0;
+
+        // Only initializing a[0] here:
+        for (auto h : this->hg->hexen) {
+            Flt dsq = morph::MathAlgo::distance_sq<Flt> ({this->gauss.x, this->gauss.y}, {h.x, h.y});
+            this->a[0][h.vi] = this->gauss.gain * std::exp (-dsq / (Flt{2} * this->gauss.sigmasq));
+            std::cout << "a[0]["<<h.vi<<"] = " << this->a[0][h.vi] << std::endl;
+        }
     }
 
     //! Analyse the basins of attraction, making sets of the states in each basin, so
@@ -153,9 +187,7 @@ public:
     Flt sum_a (size_t _i)
     {
         Flt sum = Flt{0};
-        for (auto _a : this->a[_i]) {
-            sum += _a;
-        }
+        for (auto _a : this->a[_i]) { sum += _a; }
         return sum;
     }
 
@@ -206,6 +238,8 @@ public:
             for (unsigned int j = 0; j<N; ++j) {
                 min_G = (this->G[j][h] > Flt{0} && this->G[j][h] < min_G) ? this->G[j][h] : min_G;
             }
+            min_G = (min_G == 1e10) ? Flt{0} : min_G;
+            std::cout << "minG: " << min_G << std::endl;
             // Term 3 is the output expression for gene i
             Flt term3 = (this->s[h] & 1<<i) ? (this->Delta[i] * min_G * min_G) : Flt{0};
             this->H[i][h] = term3;
