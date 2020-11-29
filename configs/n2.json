@@ -14,6 +14,9 @@
     "y_default" : -0.001833,
     "z_default" : -0.5,
 
+    "desc_genome" : "1-a is a good one",
+    "genome" : "",
+
     "sect_ellipse" : "Ellipse parameters",
     "ellipse_a" : 0.15,
     "ellipse_b" : 0.07,

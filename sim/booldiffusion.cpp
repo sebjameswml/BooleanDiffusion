@@ -171,9 +171,15 @@ int main (int argc, char **argv)
     RD.expression_threshold = conf.getDouble ("expression_threshold", 0.5f);
 
     RD.init();
+
     // After init, genome is randomized. To set from a previous state, do so here.
     // Set the funky genome
     //RD.genome = {0xb646dd22,0x76617edc,0x7046bfaa,0x58da51aa,0x13393d22};
+    std::string setgenome = conf.getString ("genome", "");
+    if (!setgenome.empty()) {
+        RD.genome.set (setgenome);
+    }
+
     std::cout << RD.genome.table() << std::endl;
 
     // Set the steepness of the sigmoid
@@ -305,7 +311,7 @@ int main (int argc, char **argv)
     morph::GraphVisual<FLT>* graph = new morph::GraphVisual<FLT> (v1.shaderprog, v1.tshaderprog, spatOff);
     graph->setdarkbg(); // colours axes and text
     graph->twodimensional = false;
-    graph->setlimits (0, steps, 0, 0.2);
+    graph->setlimits (0, steps, 0, 1);
     graph->policy = morph::stylepolicy::markers;
     graph->ylabel = "mean(a)";
     graph->xlabel = "Sim time";
