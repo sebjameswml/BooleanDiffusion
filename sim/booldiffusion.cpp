@@ -119,9 +119,8 @@ int main (int argc, char **argv)
     unsigned int framecount = 0;
 
     // Window width and height
-    const unsigned int win_width = conf.getUInt ("win_width", 1600UL);
-    //unsigned int win_height_default = static_cast<unsigned int>(0.8824f * (float)win_width);
-    unsigned int win_height_default = static_cast<unsigned int>(0.5f * (float)win_width);
+    const unsigned int win_width = conf.getUInt ("win_width", 1920UL);
+    unsigned int win_height_default = static_cast<unsigned int>(0.5625f * (float)win_width);
     const unsigned int win_height = conf.getUInt ("win_height", win_height_default);
 
     // Set up the morph::Visual object which provides the visualization scene (and
@@ -181,6 +180,9 @@ int main (int argc, char **argv)
     }
 
     std::cout << RD.genome.table() << std::endl;
+
+    std::cout << "Gene tables:\n";
+    std::cout << morph::bn::GeneNet<N,K>::gene_tables(RD.genome) << std::endl;
 
     // Set the steepness of the sigmoid
     RD.k = 1.0f;
