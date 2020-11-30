@@ -2,8 +2,8 @@
     "sect_global" : "Global simulation parameters",
     "desc_steps" : "The number of steps to simulate for",
     "steps" : 2000,
-    "logevery": 20,
-    "plotevery": 1,
+    "logevery": 200,
+    "plotevery": 5,
     "saveplots": true,
     "overwrite_logs": true,
     "desc_hextohex_d" : "Hex to hex distance, determines num hexes",
@@ -14,8 +14,8 @@
     "y_default" : -0.001833,
     "z_default" : -0.5,
 
-    "desc_genome" : "1-a is a good one",
-    "genome" : "",
+    "desc_genome" : "1-a is a good one. 4-4 does 'logical and for both' 2-2 does 'logical or for both'",
+    "genome" : "2-2",
 
     "sect_ellipse" : "Ellipse parameters",
     "ellipse_a" : 0.15,
@@ -24,7 +24,7 @@
     "sect_model_params" : "Boolean Diffusion Parameters",
     "expression_threshold" : 0.05,
     "model_params": [
-        { "alpha" : 5, "D" : 0.05,  "Delta" : 100, "name" : "a" },
-        { "alpha" : 5, "D" : 0.0005, "Delta" : 100, "name" : "b" }
+        { "alpha" : 2.5, "D" : 0.001,  "Delta" : 20, "name" : "a" },
+        { "alpha" : 2.5, "D" : 0.001,  "Delta" : 20, "name" : "b" }
     ]
 }
