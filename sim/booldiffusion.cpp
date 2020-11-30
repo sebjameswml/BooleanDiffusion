@@ -306,7 +306,6 @@ int main (int argc, char **argv)
 
 
     // Graph sum[a(t)] for each a
-    // v2.setCurrent();
     spatOff = { 0.0f, 0.0f, 0.0 };
     morph::GraphVisual<FLT>* graph = new morph::GraphVisual<FLT> (v1.shaderprog, v1.tshaderprog, spatOff);
     graph->setdarkbg(); // colours axes and text
@@ -354,8 +353,6 @@ int main (int argc, char **argv)
      */
 
     bool finished = false;
-    //std::array<std::vector<FLT>, N> sum_a;
-    //std::vector<float> simtime;
     while (finished == false) {
         RD.step();
 #ifdef COMPILE_PLOTTING
@@ -366,7 +363,6 @@ int main (int argc, char **argv)
             for (unsigned int i = 0; i < N; ++i) {
                 VdmPtr avm = (VdmPtr)v1.getVisualModel (grids[i]);
                 avm->updateData (&(RD.a[i])); // First call to updateData.
-                //std::cout << "a["<<i<<"][0] = " << RD.a[i][0] << std::endl;
                 avm->clearAutoscale();
                 avm = (VdmPtr)v1.getVisualModel (overthresh[i]);
                 avm->updateData (&(RD.G[i]));
@@ -395,7 +391,6 @@ int main (int argc, char **argv)
         if (std::chrono::duration_cast<std::chrono::milliseconds>(sincerender).count() > 17) { // 17 is about 60 Hz
             glfwPollEvents();
             v1.render();
-            //v2.render();
             lastrender = std::chrono::steady_clock::now();
         }
 #endif

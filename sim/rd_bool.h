@@ -254,8 +254,8 @@ public:
             dadt[h] = term1 + term2 + term3;
 #if 0
             if (h == 0) {
-                std::cout << "dadt[i][0] = " << term1 << " + " << term2 << " + " << term3 << " = " << dadt[h] << std::endl;
-                std::cout << " (a[i][0] = " << this->a[i][0] << ")\n";
+                std::cout << "dadt["<<i<<"]["<<h<<"] = " << term1 << " + " << term2 << " + " << term3 << " = " << dadt[h] << std::endl;
+                std::cout << " (a["<<i<<"]["<<h<<"] = " << this->a[i][h] << ")\n";
             }
 #endif
         }
