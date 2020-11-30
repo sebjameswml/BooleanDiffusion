@@ -161,8 +161,9 @@ int main (int argc, char **argv)
                   << std::endl;
         return 1;
     }
-    for (unsigned int i = 0; i < N; ++i) {
+    for (int i = (N-1); i >= 0; i--) {
         Json::Value v = params[i];
+        std::cout << "Placing parameters for Gene " << v.get("name", "unknown").asString() << " in vector index " << i << std::endl;
         RD.alpha[i] = v.get("alpha", 1.0).asDouble();
         RD.D[i] = v.get("D", 0.01).asDouble();
         RD.Delta[i] = v.get("Delta", 0.1).asDouble();
@@ -224,20 +225,26 @@ int main (int argc, char **argv)
     // Z position scaling - how hilly/bumpy the visual will be.
     std::array<unsigned int, N> grids;
     v1.setCurrent();
-    for (unsigned int i = 0; i < N; ++i) {
+    for (int i = (N-1); i >= 0; i--) {
         morph::Scale<FLT> zscale; zscale.setParams (0.2f, 0.0f);
         // The second is the colour scaling. Set this to autoscale.
         morph::Scale<FLT> cscale; cscale.do_autoscale = true;
+        std::cout << "Create HexGridVisual for RD.a["<<i<<"]..." << std::endl;
         morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
                                                                         RD.hg,
                                                                         spatOff,
                                                                         &(RD.a[i]),
                                                                         zscale,
                                                                         cscale,
-                                                                        morph::ColourMapType::Jet);
+                                                                        morph::ColourMapType::Jet,
+                                                                        0.0f, true);
         std::stringstream ss;
+        // MSB is 'a'
         char gc = 'a';
-        gc+=i; ss << gc;
+        gc+=N;
+        gc-=(i+1);
+        ss << gc;
+        std::cout << "grids["<<i<<"]: " << ss.str() << std::endl;
         hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
 
         grids[i] = v1.addVisualModel (hgv);
@@ -247,7 +254,7 @@ int main (int argc, char **argv)
 
     spatOff = { 2.2f, yzero, 0.0 };
     std::array<unsigned int, N> overthresh;
-    for (unsigned int i = 0; i < N; ++i) {
+    for (int i = (N-1); i >= 0; i--) {
         morph::Scale<FLT> zscale; zscale.setParams (0.2f, 0.0f);
         // The second is the colour scaling. Set this to autoscale.
         morph::Scale<FLT> cscale; cscale.compute_autoscale (FLT{0}, FLT{1});
@@ -257,10 +264,13 @@ int main (int argc, char **argv)
                                                                         &(RD.G[i]),
                                                                         zscale,
                                                                         cscale,
-                                                                        morph::ColourMapType::Jet);
+                                                                        morph::ColourMapType::RainbowZeroBlack,
+                                                                        0.0f, true);
         std::stringstream ss;
+        // MSB is 'a'
         char gc = 'a';
-        gc+=i;
+        gc+=N;
+        gc-=(i+1);
         ss << "(>thres) " << gc;
         hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
 
@@ -270,7 +280,7 @@ int main (int argc, char **argv)
 
     spatOff = { 3.0f, yzero, 0.0 };
     std::array<unsigned int, N> expressing;
-    for (unsigned int i = 0; i < N; ++i) {
+    for (int i = (N-1); i >= 0; i--) {
         morph::Scale<FLT> zscale; zscale.setParams (0.02f, 0.0f);
         // The second is the colour scaling. Set this to autoscale.
         morph::Scale<FLT> cscale; cscale.compute_autoscale (FLT{0}, FLT{1});
@@ -280,10 +290,13 @@ int main (int argc, char **argv)
                                                                         &(RD.H[i]),
                                                                         zscale,
                                                                         cscale,
-                                                                        morph::ColourMapType::Jet);
+                                                                        morph::ColourMapType::RainbowZeroBlack,
+                                                                        0.0f, false);
         std::stringstream ss;
+        // MSB is 'a'
         char gc = 'a';
-        gc+=i;
+        gc+=N;
+        gc-=(i+1);
         ss << "(expr) " << gc;
         hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
 
@@ -312,36 +325,57 @@ int main (int argc, char **argv)
     morph::GraphVisual<FLT>* graph = new morph::GraphVisual<FLT> (v1.shaderprog, v1.tshaderprog, spatOff);
     graph->setdarkbg(); // colours axes and text
     graph->twodimensional = false;
-    graph->setlimits (0, steps, 0, 1);
+    graph->setlimits (0, steps, 0, conf.getFloat("graph_mean_ymax", 1.0f));
     graph->policy = morph::stylepolicy::markers;
     graph->ylabel = "mean(a)";
     graph->xlabel = "Sim time";
-    for (unsigned int i = 0; i < N; ++i) {
+    for (int i = N-1; i >= 0; i--) {
         // What's the absc and data? absc is time, so 0 to steps. data is as yet unknown.
         std::stringstream ss;
+        // MSB is 'a'
         char gc = 'a';
-        gc+=i;
+        gc+=N;
+        gc-=(i+1);
         ss << "Gene " << gc;
+        // The first one that gets prepdata called for it will be the first one in the list.
         graph->prepdata (ss.str());
     }
     graph->finalize();
     v1.addVisualModel (static_cast<morph::VisualModel*>(graph));
 
-    // Graph to probe hex 0
-    int hexidx = 0;
+    // Graph to probe a single hex
+    int hexidx = conf.getInt ("graph_hex", -1);
+    int hexri = conf.getInt ("graph_hexri", 0);
+    int hexgi = conf.getInt ("graph_hexgi", 0);
+    if (hexidx == -1) {
+        // Find a hex by ri/gi to graph
+        for (auto h : RD.hg->hexen) {
+            if (h.ri == hexri && h.gi == hexgi) {
+                hexidx = h.vi;
+                std::cout << "Hex at r/g = " << hexri << "/" << hexgi << " is hex index " << hexidx << std::endl;
+                break;
+            }
+        }
+    }
+    if (hexidx == -1) { hexidx = 0; }
+
     spatOff = { -1.6f, 0.0f, 0.0 };
     morph::GraphVisual<FLT>* graph2 = new morph::GraphVisual<FLT> (v1.shaderprog, v1.tshaderprog, spatOff);
     graph2->setdarkbg(); // colours axes and text
     graph2->twodimensional = false;
-    graph2->setlimits (0, steps, 0, 1.0);
+    graph2->setlimits (0, steps, 0, conf.getFloat("graph_single_ymax", 1.0f));
     graph2->policy = morph::stylepolicy::markers;
-    graph2->ylabel = "a[gene][0]";
+    std::stringstream yy;
+    yy << "a[gene][" << hexidx << "]";
+    graph2->ylabel = yy.str();
     graph2->xlabel = "Sim time";
-    for (unsigned int i = 0; i < N; ++i) {
+    for (int i = N-1; i >= 0; i--) {
         // What's the absc and data? absc is time, so 0 to steps. data is as yet unknown.
         std::stringstream ss;
+        // MSB is 'a'
         char gc = 'a';
-        gc+=i;
+        gc+=N;
+        gc-=(i+1);
         ss << "Gene " << gc;
         graph2->prepdata (ss.str());
     }
@@ -365,7 +399,7 @@ int main (int argc, char **argv)
             for (unsigned int i = 0; i < N; ++i) {
                 VdmPtr avm = (VdmPtr)v1.getVisualModel (grids[i]);
                 avm->updateData (&(RD.a[i])); // First call to updateData.
-                avm->clearAutoscale();
+                //avm->clearAutoscale();
                 avm = (VdmPtr)v1.getVisualModel (overthresh[i]);
                 avm->updateData (&(RD.G[i]));
                 avm = (VdmPtr)v1.getVisualModel (expressing[i]);
@@ -406,8 +440,9 @@ int main (int argc, char **argv)
 #ifdef COMPILE_PLOTTING
             // Update the graph of sum(a)
             for (unsigned int i = 0; i < N; ++i) {
-                graph->append ((float)RD.stepCount, RD.sum_a(i)/(FLT)RD.nhex, i);
-                graph2->append ((float)RD.stepCount, RD.sigmoid(RD.a[i][hexidx]), i);
+                // The 0th curve on the graph is the last/MSB gene (i.e. 'a')
+                graph->append ((float)RD.stepCount, RD.sum_a(i)/(FLT)RD.nhex, (N-i-1));
+                graph2->append ((float)RD.stepCount, RD.a[i][hexidx], (N-i-1));
             }
 #endif
             RD.save();

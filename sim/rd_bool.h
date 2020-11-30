@@ -154,7 +154,7 @@ public:
         this->gauss.x = 0.05;
         this->gauss.y = 0;
 
-        // Only initializing a[0] here:
+        // Only initializing a[0] here, which is the *last letter-named gene".
         for (auto h : this->hg->hexen) {
             Flt dsq = morph::MathAlgo::distance_sq<Flt> ({this->gauss.x, this->gauss.y}, {h.x, h.y});
             this->a[0][h.vi] = this->gauss.gain * std::exp (-dsq / (Flt{2} * this->gauss.sigmasq));
@@ -212,14 +212,18 @@ public:
             this->s[h] = 0x0;
             // Check each gene to find out if its concentration is above threshold.
             for (size_t i = 0; i < N; ++i) {
-                Flt tr_a = a[i][h];//this->sigmoid(a[i][h]);
-                if (tr_a > this->expression_threshold) {
+                if (this->a[i][h] > this->expression_threshold) {
+                    // Then this gene contributes to state. Update this->s.
                     s[h] |= 0x1 << i;
                     // G holds values of a that are above threshold. Used later to
                     // modulate gene production.
                     this->G[i][h] = this->a[i][h]; // This is the input to the GRN
                 } else {
-                    this->G[i][h] = Flt{0};
+                    // This gene does not contribute to state. Non-expressing genes may
+                    // need a 'gene production value' too, so that we have a value by
+                    // which to module the amount of gene product i that should be
+                    // generated in each time step.
+                    this->G[i][h] = this->a[i][h] - this->expression_threshold;
                 }
             }
             // Now have the current state, see what the next state is
@@ -240,14 +244,24 @@ public:
             // be modulated by the levels of reagents available. G[i][h] contains the
             // input reagent levels of which we choose the minimum one (? or an
             // average?) to modulate how much those genes that are being expressed ARE
-            // actually being expressed.
-            Flt min_G = 1e10;
+            // actually being expressed. For G's that are below threshold the 'G' is the
+            // amount by which G is below the threshold.
+            Flt minpos_G = 1e10;
+            Flt minneg_G = -1e10;
             for (unsigned int j = 0; j<N; ++j) {
-                min_G = (this->G[j][h] > Flt{0} && this->G[j][h] < min_G) ? this->G[j][h] : min_G;
+                minpos_G = (this->G[j][h] > Flt{0} && this->G[j][h] < minpos_G) ? this->G[j][h] : minpos_G;
+                minneg_G = (this->G[j][h] <= Flt{0} && this->G[j][h] > minneg_G) ? this->G[j][h] : minneg_G;
             }
-            min_G = (min_G == 1e10) ? Flt{0} : min_G;
-            //std::cout << "min_G: " << min_G << std::endl;
+            // If no gene was expressing above threshold, min_G needs to be set to -minneg_G
+            Flt min_G = (minpos_G == 1e10) ? -minneg_G : minpos_G;
+
             // Term 3 is the output expression for gene i
+#if 0
+            if (h == 0) {
+                std::cout << "min_G: " << min_G;
+                std::cout << ", s[" << h << "] = " << morph::bn::GeneNet<N,K>::state_str(this->s[h]) << std::endl;
+            }
+#endif
             Flt term3 = (this->s[h] & 1<<i) ? (this->Delta[i] * min_G * min_G) : Flt{0};
             this->H[i][h] = term3;
 
