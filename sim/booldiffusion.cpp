@@ -9,7 +9,7 @@
 # error "Please define FLT as float or double when compiling (hint: See CMakeLists.txt)"
 #endif
 
-#include "rd_bool.h"
+#include "rd_bool1.h"
 #include <iostream>
 #include <fstream>
 #include <vector>

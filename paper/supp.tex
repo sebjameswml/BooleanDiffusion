@@ -298,15 +298,44 @@ varies with space and time.
 
 \subsection{results}
 
+See code \code{rd\_bool1.h}.
+
 The responses of the various systems were not as exciting as hoped for. I
 initialised the system with varous `points of expression' or `humps of
 expression' above a background initialisation equal to the expression
 threshold, $\xi$. The $a_i$ decayed and diffused according to the selected
 parameters $D$ and $\alpha$. Where expression was substantially above
-threshold, you see peaks for $\sigma$ and corresponding expression ($F$).
+threshold, you see peaks for $\sigma$ and corresponding expression
+($F$). However, there seems to be no way to create spatial structure which
+is not fairly directly associated with the initial conditions.
+
+\section{Where next}
+
+What additional features could the gene products have? One idea is to
+associate the ability to follow gradients in expression of other gene
+products. This might be a cell division response to a morphogen, where newly
+created cells tend to move in the direction of the signalling gradient. Thus,
+a gene product could have N-1 sets of bits which determine whether that gene
+product movies down the gradient of gene $i$ or up the gradient of gene
+$i$. If both of these bits were high, then they would cancel out, thuse the
+most probable state woudl be to not follow gradient of gene $i$. This would
+add $2 N (N-1)$ bits to the genome of $N 2^N$ bits. This would allow the
+genome to determine spatial structure.
+
+Another thought relates to timeframes. One issue in the model described is
+that when we switch into a new state, that state may not persist, and its gene
+products may not be produced for long. One idea would be to implement a
+timeframe for which gene production would persist, once switched on. Another
+would be to implement different 'switch off' thresholds from 'switch on'
+thresholds.
+
+Perhaps I need both of these ideas in a new model.
+
+I could also include genome bits to switch between short/long diffusion
+constants and slow/fast decay.
+
 %
-%
-BIBLIOGRAPHY
+%BIBLIOGRAPHY
 %
 \selectlanguage{English}
 \bibliographystyle{abbrvnotitle}
