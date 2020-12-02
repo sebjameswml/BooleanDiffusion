@@ -167,7 +167,9 @@ int main (int argc, char **argv)
     }
     for (int i = (N-1); i >= 0; i--) {
         Json::Value v = params[i];
-        std::cout << "Placing parameters for Gene " << v.get("name", "unknown").asString() << " in vector index " << (N-i-1) << std::endl;
+        std::cout << "Placing parameters for Gene "
+                  << v.get("name", "unknown").asString()
+                  << " in vector index " << (N-i-1) << std::endl;
         RD.alpha[N-i-1] = v.get("alpha", 1.0).asDouble();
         RD.D[N-i-1] = v.get("D", 0.01).asDouble();
         RD.beta[N-i-1] = v.get("beta", 0.1).asDouble();

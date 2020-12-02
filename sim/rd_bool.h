@@ -160,25 +160,19 @@ public:
 
         this->set_vector_vector (this->a, N, this->expression_threshold);
 
-#if 1
-        this->a[0][80] = 5;
-        this->a[1][30] = 5;
-#else
-        // Only initializing a[0] here, which is the *last letter-named gene".
+        // Initialise a[N-1] which is 'Gene a'
         for (auto h : this->hg->hexen) {
             Flt dsq = morph::MathAlgo::distance_sq<Flt> ({this->gauss.x, this->gauss.y}, {h.x, h.y});
-            this->a[0][h.vi] = this->gauss.gain * std::exp (-dsq / (Flt{2} * this->gauss.sigmasq));
-            //std::cout << "a[0]["<<h.vi<<"] = " << this->a[0][h.vi] << std::endl;
+            this->a[N-1][h.vi] = this->gauss.gain * std::exp (-dsq / (Flt{2} * this->gauss.sigmasq));
         }
 
-        // Only initializing a[1] here:
-# if 1
+#if 1
+        // a[n-2] or 'Gene b'
         this->gauss.x = -0.05;
         for (auto h : this->hg->hexen) {
             Flt dsq = morph::MathAlgo::distance_sq<Flt> ({this->gauss.x, this->gauss.y}, {h.x, h.y});
-            this->a[1][h.vi] = this->gauss.gain * std::exp (-dsq / (Flt{2} * this->gauss.sigmasq));
+            this->a[N-2][h.vi] = this->gauss.gain * std::exp (-dsq / (Flt{2} * this->gauss.sigmasq));
         }
-# endif
 #endif
     }
 
