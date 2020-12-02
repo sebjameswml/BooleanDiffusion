@@ -1,7 +1,7 @@
 {
     "sect_global" : "Global simulation parameters",
     "desc_steps" : "The number of steps to simulate for",
-    "steps" : 4000,
+    "steps" : 1000,
     "logevery": 200,
     "plotevery": 5,
     "vidframes": true,
@@ -16,14 +16,15 @@
     "z_default" : -0.5,
     "win_width" : 2048,
     "win_height" : 768,
+    "map3d" : false,
 
-    "graph_mean_ymax" : 0.4,
+    "graph_mean_ymax" : 0.8,
     "graph_single_ymax" : 1,
     "desc_graph_hex" : "The hex for which a single trace is given in the left graph",
     "graph_hexri" : 7,
     "graph_hexgi" : 0,
 
-    "desc_genome" : "1-a is a good one. 4-4 does 'I express only if I express' 2-2 does 'I express only if only the other gene expresses'",
+    "desc_genome" : "Leave blank to choose randomly. 4-4 does 'I express only if I express' 2-2 does 'I express only if only the other gene expresses'",
     "genome" : "2-2",
 
     "sect_ellipse" : "Ellipse parameters",
@@ -31,9 +32,9 @@
     "ellipse_b" : 0.07,
 
     "sect_model_params" : "Boolean Diffusion Parameters",
-    "expression_threshold" : 0.25,
+    "expression_threshold" : 0.45,
     "model_params": [
-        { "alpha" : 1, "D" : 0.001,  "Delta" : 100, "name" : "a", "tag" : "MSB" },
-        { "alpha" : 1, "D" : 0.001,  "Delta" : 100, "name" : "b" }
+        { "alpha" : 0.1, "D" : 0.0005, "beta" : 100, "name" : "a", "tag" : "MSB" },
+        { "alpha" : 0.1, "D" : 0.005,  "beta" : 10, "name" : "b" } // seems to apply to gene a on graph...
     ]
 }

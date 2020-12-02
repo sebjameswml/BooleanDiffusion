@@ -29,7 +29,8 @@
 # include <morph/Vector.h>
 //! Helper function to save PNG images with a suitable name
 void savePngs (const std::string& logpath, const std::string& name,
-               unsigned int frameN, morph::Visual& v) {
+               unsigned int frameN, morph::Visual& v)
+{
     std::stringstream ff1;
     ff1 << logpath << "/" << name<< "_";
     ff1 << std::setw(7) << std::setfill('0') << frameN;
@@ -123,6 +124,9 @@ int main (int argc, char **argv)
     unsigned int win_height_default = static_cast<unsigned int>(0.5625f * (float)win_width);
     const unsigned int win_height = conf.getUInt ("win_height", win_height_default);
 
+    // Do 3D maps or 2D maps?
+    const bool map3d = conf.getBool ("map3d", true);
+
     // Set up the morph::Visual object which provides the visualization scene (and
     // a GLFW window to show it in)
     morph::Visual v1 (win_width, win_height, "Boolean Diffusion");
@@ -163,10 +167,10 @@ int main (int argc, char **argv)
     }
     for (int i = (N-1); i >= 0; i--) {
         Json::Value v = params[i];
-        std::cout << "Placing parameters for Gene " << v.get("name", "unknown").asString() << " in vector index " << i << std::endl;
-        RD.alpha[i] = v.get("alpha", 1.0).asDouble();
-        RD.D[i] = v.get("D", 0.01).asDouble();
-        RD.Delta[i] = v.get("Delta", 0.1).asDouble();
+        std::cout << "Placing parameters for Gene " << v.get("name", "unknown").asString() << " in vector index " << (N-i-1) << std::endl;
+        RD.alpha[N-i-1] = v.get("alpha", 1.0).asDouble();
+        RD.D[N-i-1] = v.get("D", 0.01).asDouble();
+        RD.beta[N-i-1] = v.get("beta", 0.1).asDouble();
     }
     RD.expression_threshold = conf.getDouble ("expression_threshold", 0.5f);
 
@@ -184,9 +188,6 @@ int main (int argc, char **argv)
 
     std::cout << "Gene tables:\n";
     std::cout << morph::bn::GeneNet<N,K>::gene_tables(RD.genome) << std::endl;
-
-    // Set the steepness of the sigmoid
-    RD.k = 1.0f;
 
     // Create a log directory if necessary, and exit on any failures.
     if (morph::Tools::dirExists (logpath) == false) {
@@ -226,7 +227,7 @@ int main (int argc, char **argv)
     std::array<unsigned int, N> grids;
     v1.setCurrent();
     for (int i = (N-1); i >= 0; i--) {
-        morph::Scale<FLT> zscale; zscale.setParams (0.2f, 0.0f);
+        morph::Scale<FLT> zscale; zscale.setParams ((map3d ? 0.2f : 0.0f), 0.0f);
         // The second is the colour scaling. Set this to autoscale.
         morph::Scale<FLT> cscale; cscale.do_autoscale = true;
         std::cout << "Create HexGridVisual for RD.a["<<i<<"]..." << std::endl;
@@ -237,7 +238,7 @@ int main (int argc, char **argv)
                                                                         zscale,
                                                                         cscale,
                                                                         morph::ColourMapType::Jet,
-                                                                        0.0f, true);
+                                                                        0.0f, (map3d ? true : false));
         std::stringstream ss;
         // MSB is 'a'
         char gc = 'a';
@@ -255,23 +256,23 @@ int main (int argc, char **argv)
     spatOff = { 2.2f, yzero, 0.0 };
     std::array<unsigned int, N> overthresh;
     for (int i = (N-1); i >= 0; i--) {
-        morph::Scale<FLT> zscale; zscale.setParams (0.2f, 0.0f);
+        morph::Scale<FLT> zscale; zscale.setParams ((map3d ? 0.2f : 0.0f), 0.0f);
         // The second is the colour scaling. Set this to autoscale.
-        morph::Scale<FLT> cscale; cscale.compute_autoscale (FLT{0}, FLT{1});
+        morph::Scale<FLT> cscale; cscale.compute_autoscale (FLT{-1}, FLT{1});
         morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
                                                                         RD.hg,
                                                                         spatOff,
-                                                                        &(RD.G[i]),
+                                                                        &(RD.sigma[i]),
                                                                         zscale,
                                                                         cscale,
-                                                                        morph::ColourMapType::RainbowZeroBlack,
-                                                                        0.0f, true);
+                                                                        map3d ? morph::ColourMapType::RainbowZeroBlack : morph::ColourMapType::Jet,
+                                                                        0.0f, (map3d ? true : false));
         std::stringstream ss;
         // MSB is 'a'
         char gc = 'a';
         gc+=N;
         gc-=(i+1);
-        ss << "(>thres) " << gc;
+        ss << "sigma(" << gc << ")";
         hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
 
         overthresh[i] = v1.addVisualModel (hgv);
@@ -281,23 +282,23 @@ int main (int argc, char **argv)
     spatOff = { 3.0f, yzero, 0.0 };
     std::array<unsigned int, N> expressing;
     for (int i = (N-1); i >= 0; i--) {
-        morph::Scale<FLT> zscale; zscale.setParams (0.02f, 0.0f);
+        morph::Scale<FLT> zscale; zscale.setParams ((map3d ? 0.02f : 0.0f), 0.0f);
         // The second is the colour scaling. Set this to autoscale.
         morph::Scale<FLT> cscale; cscale.compute_autoscale (FLT{0}, FLT{1});
         morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
                                                                         RD.hg,
                                                                         spatOff,
-                                                                        &(RD.H[i]),
+                                                                        &(RD.F[i]),
                                                                         zscale,
                                                                         cscale,
-                                                                        morph::ColourMapType::RainbowZeroBlack,
+                                                                        map3d ? morph::ColourMapType::RainbowZeroBlack : morph::ColourMapType::Jet,
                                                                         0.0f, false);
         std::stringstream ss;
         // MSB is 'a'
         char gc = 'a';
         gc+=N;
         gc-=(i+1);
-        ss << "(expr) " << gc;
+        ss << "F_" << gc << "()";
         hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
 
         expressing[i] = v1.addVisualModel (hgv);
@@ -401,9 +402,9 @@ int main (int argc, char **argv)
                 avm->updateData (&(RD.a[i])); // First call to updateData.
                 //avm->clearAutoscale();
                 avm = (VdmPtr)v1.getVisualModel (overthresh[i]);
-                avm->updateData (&(RD.G[i]));
+                avm->updateData (&(RD.sigma[i]));
                 avm = (VdmPtr)v1.getVisualModel (expressing[i]);
-                avm->updateData (&(RD.H[i]));
+                avm->updateData (&(RD.F[i]));
             }
 
             VdmStatePtr avm = (VdmStatePtr)v1.getVisualModel (grid_state);

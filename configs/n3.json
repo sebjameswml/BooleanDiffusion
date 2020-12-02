@@ -20,8 +20,8 @@
 
     "sect_model_params" : "Boolean Diffusion Parameters",
     "model_params": [
-        { "alpha" : 5, "D" : 0.05,  "Delta" : 0.1, "name" : "a" },
-        { "alpha" : 5, "D" : 0.0005, "Delta" : 0.1, "name" : "b" },
-        { "alpha" : 5, "D" : 0.0005, "Delta" : 0.1, "name" : "c" }
+        { "alpha" : 5, "D" : 0.05,  "beta" : 0.1, "name" : "a" },
+        { "alpha" : 5, "D" : 0.0005, "beta" : 0.1, "name" : "b" },
+        { "alpha" : 5, "D" : 0.0005, "beta" : 0.1, "name" : "c" }
     ]
 }

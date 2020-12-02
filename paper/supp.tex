@@ -232,26 +232,78 @@ products.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{First system}
 
-Average protein densities, $a_i$ for each of $N$ genes operating in the cells
-within a spatial element are arbitrary. Pass these through a sigmoid or
-threshold, $\sigma()$ to determine whether a gene's input is on or
-off. Operate the Boolean net, $G$, and use its output for the $i^{th}$
-protein, $G_i$, to add $\Delta_i$ to the protein density. Allow proteins to
-diffuse with constant $D_i$ (perhaps choose two representative length scales
-for cell-cell interactions and morphogen-type diffusion). Give each protein a
-characteristic decay lifetime, $\alpha_i$ (either set
+The average protein densities, $a_i$ for each of $N$ genes operating in the
+cells within a spatial element are continuously valued. Pass these through a
+threshold function, $\sigma()$ to (i) determine whether a gene's input to a
+gene regulatory network (GRN) is on or off (forming a current state, $s$) and
+(ii) obtain a value for the `strength' of that gene's input. Operate the GRN,
+$G$, on $s$ and use its output for the $i^{th}$ protein, $G_i$, along with
+$\sigma_1,...,\sigma_N$ as inputs to a function $F_i$, which determines how much
+to add to the protein density $a_i$ (modulating by a parameter, $\beta_i$). Allow
+proteins to diffuse with constant $D_i$ (perhaps choose two representative
+length scales for cell-cell interactions and morphogen-type diffusion). Give
+each protein a characteristic decay lifetime, $\alpha_i$ (either set
 %
 $\alpha_i = \alpha,~\forall i$ or, as for diffusion, choose two values for
 fast- and slow-decay proteins). Then we can write $N$ differential equations as:
 
 \begin{equation} \label{eq:bd}
 \frac{\partial a_i(\mb{x},t)}{\partial t} = D_i \dvrg a_i(\mb{x},t) -\alpha_i
-a_i(\mb{x},t) + \Delta_i G_i\big(\sigma(a_1), \sigma(a_2),...,\sigma(a_N)\big)
+a_i(\mb{x},t) + \beta_i F_i\big(G_i(s), \sigma(a_1),...,\sigma(a_N)\big)
 \end{equation}
 
-Run the system and colour regions according to $a_i$ and also perhaps which
-basin of activity $G$ is operating in. That'd be cool.
+where $s$ is the current state of gene protein expression and the operation of
+the GRN on $s$ gives a new state, $s'$: $s' = G(s)$.
 
+During implementation, I decided that the function $\sigma()$ should
+operate something like this:
+
+\begin{equation} \label{eq:sigma}
+\sigma(a_i) = a_i - \xi,
+\end{equation}
+
+where $\xi$ is a threshold protein density. If $a_i$ exceeds $\xi$, then
+element $i$ of the current GRN state, $s$ is considered to be 1. If $a_i$ does
+not exceed $\xi$, then element $i$ of $s$ is 0 and $\sigma(a_i)$ has a
+negative value. The $N$ elements, $s_i$, of state $s$ can be written:
+
+\begin{equation} \label{eq:s}
+s_i = \begin{cases}
+      1 & a_i > \xi \\
+      0 & a_i \leq \xi
+      \end{cases}
+\end{equation}
+or, equivalently:
+\begin{equation} \label{eq:s2}
+s_i = \begin{cases}
+      1 & \sigma(a_i) > 0 \\
+      0 & \sigma(a_i) \leq 0
+      \end{cases}
+\end{equation}
+
+The existing state $s$ is processed by the GRN, $s' = G(s)$, and so $s' = G(\sigma(a_1),...,\sigma(a_N))$.
+
+Finally, the function $F$ was chosen so that its elements were given by:
+
+\begin{equation} \label{eq:F}
+F_i = \begin{cases}
+0 & G_i = 0 \\
+\sqrt{\frac{1}{N}\sum_j^N \sigma(a_j)^2}  & G_i = 1
+\end{cases}
+\end{equation}
+
+$F_i$ is a function of $a_1,...,a_N$ and gives the `expressingness' of gene
+$i$ at a given location. $F_i$ is a function of space and time because $a_i$
+varies with space and time.
+
+\subsection{results}
+
+The responses of the various systems were not as exciting as hoped for. I
+initialised the system with varous `points of expression' or `humps of
+expression' above a background initialisation equal to the expression
+threshold, $\xi$. The $a_i$ decayed and diffused according to the selected
+parameters $D$ and $\alpha$. Where expression was substantially above
+threshold, you see peaks for $\sigma$ and corresponding expression ($F$).
 %
 %
 BIBLIOGRAPHY

@@ -1,15 +1,15 @@
 {
     "sect_global" : "Global simulation parameters",
     "desc_steps" : "The number of steps to simulate for",
-    "steps" : 10,
-    "logevery": 1,
-    "plotevery": 1,
+    "steps" : 10000,
+    "logevery": 100,
+    "plotevery": 50,
     "saveplots": true,
     "overwrite_logs": true,
     "desc_hextohex_d" : "Hex to hex distance, determines num hexes",
     "hextohex_d" : 0.02,
     "boundaryFalloffDist" : 0.01,
-    "dt" : 0.000005,
+    "dt" : 0.0005,
     "x_default" : 0.1924,
     "y_default" : -0.001833,
     "z_default" : -0.5,
@@ -19,11 +19,12 @@
     "ellipse_b" : 0.07,
 
     "sect_model_params" : "Boolean Diffusion Parameters",
+    "expression_threshold" : 0.5,
     "model_params": [
-        { "alpha" : 5, "D" : 0.05,  "Delta" : 0.001, "name" : "a" },
-        { "alpha" : 5, "D" : 0.0005, "Delta" : 0.001, "name" : "b" },
-        { "alpha" : 5, "D" : 0.0005, "Delta" : 0.001, "name" : "c" },
-        { "alpha" : 5, "D" : 0.05,  "Delta" : 0.001, "name" : "d" },
-        { "alpha" : 5, "D" : 0.0005, "Delta" : 0.001, "name" : "e" }
+        { "alpha" : 1, "D" : 0.001,  "beta" : 5, "name" : "a" },
+        { "alpha" : 1, "D" : 0.0001, "beta" : 5, "name" : "b" },
+        { "alpha" : 1, "D" : 0.0001, "beta" : 5, "name" : "c" },
+        { "alpha" : 1, "D" : 0.001,  "beta" : 5, "name" : "d" },
+        { "alpha" : 1, "D" : 0.0001, "beta" : 5, "name" : "e" }
     ]
 }

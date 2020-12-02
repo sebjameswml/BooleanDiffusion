@@ -86,18 +86,22 @@ public:
     alignas(alignof(std::vector<Flt>))
     std::vector<Flt> D;
 
-    //! Delta_i parameters (accretion rates, when gene is in expressing state)
+    //! beta_i parameters (accretion rates, when gene is in expressing state)
     alignas(alignof(std::vector<Flt>))
-    std::vector<Flt> Delta;
+    std::vector<Flt> beta;
 
     //! To hold a value to say if Gene[i] is above the input expression threshold or
-    //! not. Useful for graphing.
+    //! not. This is effectively the result of sigma(a_i).
     alignas(alignof(std::vector<std::vector<Flt> >))
     std::vector<std::vector<Flt> > G;
 
-    //! Holds the output expression value. For graphing.
+    //! Explicit variable for sigma(a_i)
     alignas(alignof(std::vector<std::vector<Flt> >))
-    std::vector<std::vector<Flt> > H;
+    std::vector<std::vector<Flt> > sigma;
+
+    //! The functoin F (G(s)
+    alignas(alignof(std::vector<std::vector<Flt> >))
+    std::vector<std::vector<Flt> > F;
 
     //! The state of the gene network at each hex, computed by calling develop() on the
     //! state constructed by looking at the expression levels of each gene, a[i]
@@ -123,20 +127,20 @@ public:
         // 'vector variable' is given by the number of hexes in the hex grid which is
         // a member of this class (via its parent, RD_Base)
         this->resize_vector_vector (this->a, N);
-        this->resize_vector_vector (this->G, N);
-        this->resize_vector_vector (this->H, N);
+        this->resize_vector_vector (this->F, N);
+        this->resize_vector_vector (this->sigma, N);
         this->resize_vector_array_vector (this->grad_a, N);
         this->resize_vector_param (this->alpha, N);
         this->resize_vector_param (this->D, N);
-        this->resize_vector_param (this->Delta, N);
+        this->resize_vector_param (this->beta, N);
         this->s.resize (this->nhex, 0);
     }
 
     //! Initilization and any one-time computations required of the model.
     void init()
     {
-        this->zero_vector_vector (this->G, N);
-        this->zero_vector_vector (this->H, N);
+        this->zero_vector_vector (this->F, N);
+        this->zero_vector_vector (this->sigma, N);
         this->zero_vector_array_vector (this->grad_a, N);
 
         this->zero_vector_vector (this->a, N);
@@ -146,7 +150,7 @@ public:
     }
 
 
-    void init_a()
+    virtual void init_a()
     {
         this->gauss.gain = 1.0;
         this->gauss.sigma = 0.05;
@@ -154,6 +158,12 @@ public:
         this->gauss.x = 0.05;
         this->gauss.y = 0;
 
+        this->set_vector_vector (this->a, N, this->expression_threshold);
+
+#if 1
+        this->a[0][80] = 5;
+        this->a[1][30] = 5;
+#else
         // Only initializing a[0] here, which is the *last letter-named gene".
         for (auto h : this->hg->hexen) {
             Flt dsq = morph::MathAlgo::distance_sq<Flt> ({this->gauss.x, this->gauss.y}, {h.x, h.y});
@@ -162,11 +172,14 @@ public:
         }
 
         // Only initializing a[1] here:
+# if 1
         this->gauss.x = -0.05;
         for (auto h : this->hg->hexen) {
             Flt dsq = morph::MathAlgo::distance_sq<Flt> ({this->gauss.x, this->gauss.y}, {h.x, h.y});
             this->a[1][h.vi] = this->gauss.gain * std::exp (-dsq / (Flt{2} * this->gauss.sigmasq));
         }
+# endif
+#endif
     }
 
     //! Analyse the basins of attraction, making sets of the states in each basin, so
@@ -190,7 +203,7 @@ public:
         }
     }
 
-    //! Compute the sum of variable a[_i] (FIXME: Make 'a' a vVector
+    //! Compute the sum of variable a[_i]
     Flt sum_a (size_t _i)
     {
         Flt sum = Flt{0};
@@ -198,40 +211,33 @@ public:
         return sum;
     }
 
-    static constexpr bool debug_compute = true;
-
-    Flt k = Flt{1.0};
-    Flt sigmoid (Flt _a) { return (Flt{1} / (Flt{1} + std::exp(-this->k*_a))); }
-
     //! Compute inputs for the gene regulatory network, its next developed step (for
-    //! each hex) and its outputs, storing these in this->G
-    void compute_genenet()
+    //! each hex) and its outputs, storing these in this->sigma and this->s.
+    virtual void compute_genenet()
     {
         // 1. Compute sigma(a_i) in each hex. In each hex, the state may be different
         for (unsigned int h=0; h<this->nhex; ++h) {
             this->s[h] = 0x0;
             // Check each gene to find out if its concentration is above threshold.
             for (size_t i = 0; i < N; ++i) {
-                if (this->a[i][h] > this->expression_threshold) {
-                    // Then this gene contributes to state. Update this->s.
-                    s[h] |= 0x1 << i;
-                    // G holds values of a that are above threshold. Used later to
-                    // modulate gene production.
-                    this->G[i][h] = this->a[i][h]; // This is the input to the GRN
-                } else {
-                    // This gene does not contribute to state. Non-expressing genes may
-                    // need a 'gene production value' too, so that we have a value by
-                    // which to module the amount of gene product i that should be
-                    // generated in each time step.
-                    this->G[i][h] = this->a[i][h] - this->expression_threshold;
-                }
+
+                // Set s based on a[i][h]
+                s[h] |= (this->a[i][h] > this->expression_threshold ? 0x1 : 0x0) << i;
+
+                // sigma is a function that returns the amount by which a is above
+                // (or below if negative) the expression threshold.
+                this->sigma[i][h] = this->a[i][h] - this->expression_threshold;
+
             }
-            // Now have the current state, see what the next state is
+            // Now have the current state, see what the next state is. grn.develop() is
+            // G() in the notes and this line turns s into s':
             this->grn.develop (this->s[h], this->genome);
         }
     }
 
-    void compute_dadt (const size_t i, std::vector<Flt>& a_, std::vector<Flt>& dadt)
+    static constexpr bool debug_compute_dadt = false;
+
+    virtual void compute_dadt (const size_t i, std::vector<Flt>& a_, std::vector<Flt>& dadt)
     {
         std::vector<Flt> lap_a(this->nhex, 0.0);
         this->compute_laplace (a_, lap_a);
@@ -246,32 +252,39 @@ public:
             // average?) to modulate how much those genes that are being expressed ARE
             // actually being expressed. For G's that are below threshold the 'G' is the
             // amount by which G is below the threshold.
-            Flt minpos_G = 1e10;
-            Flt minneg_G = -1e10;
+
+            Flt _F = Flt{0};
             for (unsigned int j = 0; j<N; ++j) {
-                minpos_G = (this->G[j][h] > Flt{0} && this->G[j][h] < minpos_G) ? this->G[j][h] : minpos_G;
-                minneg_G = (this->G[j][h] <= Flt{0} && this->G[j][h] > minneg_G) ? this->G[j][h] : minneg_G;
+                if constexpr (debug_compute_dadt) {
+                    if (h == 0) {
+                        std::cout << "Adding " << (this->sigma[j][h] * this->sigma[j][h])
+                                  << " to _F for Gene " << j << std::endl;
+                    }
+                }
+                _F += this->sigma[j][h] * this->sigma[j][h];
             }
-            // If no gene was expressing above threshold, min_G needs to be set to -minneg_G
-            Flt min_G = (minpos_G == 1e10) ? -minneg_G : minpos_G;
+
+            // F is RMS of sigma squared or 0, depending on s_i being 1 or 0
+            this->F[i][h] = (this->s[h] & 1<<i) ? std::sqrt (_F / Flt{N}) : Flt{0};
 
             // Term 3 is the output expression for gene i
-#if 0
-            if (h == 0) {
-                std::cout << "min_G: " << min_G;
-                std::cout << ", s[" << h << "] = " << morph::bn::GeneNet<N,K>::state_str(this->s[h]) << std::endl;
+            if constexpr (debug_compute_dadt) {
+                if (h == 0) {
+                    std::cout << "F[i][h=0]: " << this->F[i][h];
+                    std::cout << ", s[" << h << "] = " << morph::bn::GeneNet<N,K>::state_str(this->s[h]) << std::endl;
+                }
             }
-#endif
-            Flt term3 = (this->s[h] & 1<<i) ? (this->Delta[i] * min_G * min_G) : Flt{0};
-            this->H[i][h] = term3;
+
+            Flt term3 = this->beta[i] * this->F[i][h];
 
             dadt[h] = term1 + term2 + term3;
-#if 0
-            if (h == 0) {
-                std::cout << "dadt["<<i<<"]["<<h<<"] = " << term1 << " + " << term2 << " + " << term3 << " = " << dadt[h] << std::endl;
-                std::cout << " (a["<<i<<"]["<<h<<"] = " << this->a[i][h] << ")\n";
+            if constexpr (debug_compute_dadt) {
+                if (h == 0) {
+                    std::cout << "dadt["<<i<<"]["<<h<<"] = "
+                              << term1 << " + " << term2 << " + " << term3 << " = " << dadt[h] << std::endl;
+                    std::cout << " (a["<<i<<"]["<<h<<"] = " << this->a[i][h] << ")\n";
+                }
             }
-#endif
         }
     }
 
