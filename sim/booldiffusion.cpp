@@ -9,7 +9,12 @@
 # error "Please define FLT as float or double when compiling (hint: See CMakeLists.txt)"
 #endif
 
-#include "rd_bool1.h"
+#if defined BD_MARK2
+# include "rd_bool2.h"
+#else
+# include "rd_bool1.h"
+#endif
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -106,9 +111,6 @@ int main (int argc, char **argv)
         }
     }
 
-    // The length of one timestep
-    const FLT dt = static_cast<FLT>(conf.getDouble ("dt", 0.00001));
-
 #ifdef COMPILE_PLOTTING
     // Parameters from the config that apply only to plotting:
     const unsigned int plotevery = conf.getUInt ("plotevery", 10);
@@ -144,8 +146,11 @@ int main (int argc, char **argv)
     /*
      * Simulation instanciation
      */
-
+#if defined BD_MARK2
+    RD_Bool2<FLT, N, K> RD;
+#else
     RD_Bool1<FLT, N, K> RD;
+#endif
 
     RD.svgpath = ""; // We'll do an elliptical boundary, so set svgpath empty
     RD.ellipse_a = conf.getDouble ("ellipse_a", 0.8);
@@ -154,7 +159,7 @@ int main (int argc, char **argv)
     RD.hextohex_d = conf.getFloat ("hextohex_d", 0.01f);
     RD.boundaryFalloffDist = conf.getFloat ("boundaryFalloffDist", 0.01f);
     RD.allocate();
-    RD.set_dt (dt);
+    RD.set_dt (static_cast<FLT>(conf.getDouble ("dt", 0.00001))); // The length of one timestep
 
     // Set the Boolean Diffusion model parameters
     const Json::Value params = conf.getArray ("model_params");
@@ -264,7 +269,7 @@ int main (int argc, char **argv)
         morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
                                                                         RD.hg,
                                                                         spatOff,
-                                                                        &(RD.sigma[i]),
+                                                                        &(RD.T[i]),
                                                                         zscale,
                                                                         cscale,
                                                                         map3d ? morph::ColourMapType::RainbowZeroBlack : morph::ColourMapType::Jet,
@@ -274,7 +279,7 @@ int main (int argc, char **argv)
         char gc = 'a';
         gc+=N;
         gc-=(i+1);
-        ss << "sigma(" << gc << ")";
+        ss << "T(" << gc << ")";
         hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
 
         overthresh[i] = v1.addVisualModel (hgv);
@@ -404,7 +409,7 @@ int main (int argc, char **argv)
                 avm->updateData (&(RD.a[i])); // First call to updateData.
                 //avm->clearAutoscale();
                 avm = (VdmPtr)v1.getVisualModel (overthresh[i]);
-                avm->updateData (&(RD.sigma[i]));
+                avm->updateData (&(RD.T[i]));
                 avm = (VdmPtr)v1.getVisualModel (expressing[i]);
                 avm->updateData (&(RD.F[i]));
             }

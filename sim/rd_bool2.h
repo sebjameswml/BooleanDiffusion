@@ -16,7 +16,7 @@
 #endif
 
 /*
- * This file provides the class RD_Bool1
+ * This file provides the class RD_Bool2.
  *
  * See paper/supp.tex
  *
@@ -33,10 +33,39 @@
  * regulatory network).
  */
 template <typename Flt, size_t N, size_t K>
-class RD_Bool1 : public RD_Bool<Flt, N, K>
+class RD_Bool2 : public RD_Bool<Flt, N, K>
 {
 public:
-    RD_Bool1() : RD_Bool<Flt, N, K>() {}
+    //! Time of state change, in steps. If -1, then state s may change, otherwise,
+    //! stepCount must exceed tsc[h] for hex h to change state.
+    alignas(alignof(std::vector<int>)) std::vector<int> tsc;
+
+    //! The expressing state of the hex.
+    alignas(alignof(std::vector<morph::bn::state_t>))
+    std::vector<morph::bn::state_t> s_e;
+
+    //! How long to delay expression, in timesteps. Equal to 1/(alpha * dt)
+    int expression_delay = 0;
+
+    RD_Bool2() : RD_Bool<Flt, N, K>() {}
+
+    virtual void allocate()
+    {
+        RD_Bool<Flt, N, K>::allocate();
+        // Note: Setting tsc to -1 at start
+        this->tsc.resize (N, -1);
+        this->s_e.resize (N, 0);
+    }
+
+#if 0
+    virtual void init()
+    {
+        RD_Bool<Flt, N, K>::init();
+        for (size_t i = 0; i < N; ++i) {
+            this->expression_delay[i] = (int)1/(this->alpha[i]*this->dt)
+        }
+    }
+#endif
 
     virtual void init_a()
     {
@@ -70,21 +99,34 @@ public:
     {
         // 1. Compute T(a_i) in each hex. In each hex, the state may be different
         for (unsigned int h=0; h<this->nhex; ++h) {
-            this->s[h] = 0x0;
-            // Check each gene to find out if its concentration is above threshold.
-            for (size_t i = 0; i < N; ++i) {
+            if (this->tsc[h] == -1) {
+                this->s[h] = 0x0;
+                // Check each gene to find out if its concentration is above threshold.
+                for (size_t i = 0; i < N; ++i) {
 
-                // Set s based on a[i][h]
-                this->s[h] |= (this->a[i][h] > this->expression_threshold ? 0x1 : 0x0) << i;
+                    // Set s based on a[i][h]
+                    this->s[h] |= (this->a[i][h] > this->expression_threshold ? 0x1 : 0x0) << i;
 
-                // T is a function that returns the amount by which a is above
-                // (or below if negative) the expression threshold.
-                this->T[i][h] = this->a[i][h] - this->expression_threshold;
+                    // T is a function that returns the amount by which a is above
+                    // (or below if negative) the expression threshold.
+                    this->T[i][h] = this->a[i][h] - this->expression_threshold;
 
+                }
+                // Now have the current state, see what the next state is. grn.develop() is
+                // G() in the notes and this line turns s into s':
+                this->grn.develop (this->s[h], this->genome);
+                if (this->s[h] != this->s_e[h]) {
+                    // Developing state is different from the previous expressing state,
+                    // so update it, and set timestamp.
+                    this->s_e[h] = this->s[h];
+                    this->tsc[h] = static_cast<int>(this->stepCount);
+                }
+            } else {
+                // tsc has a stepCount in it.
+                if (static_cast<int>(this->stepCount) - this->tsc[h] > this->expression_delay) {
+                    tsc[h] = -1;
+                }
             }
-            // Now have the current state, see what the next state is. grn.develop() is
-            // G() in the notes and this line turns s into s':
-            this->grn.develop (this->s[h], this->genome);
         }
     }
 
@@ -117,14 +159,14 @@ public:
                 _F += this->T[j][h] * this->T[j][h];
             }
 
-            // F is RMS of T squared or 0, depending on s_i being 1 or 0
-            this->F[i][h] = (this->s[h] & 1<<i) ? std::sqrt (_F / Flt{N}) : Flt{0};
+            // F is RMS of T squared or 0, depending on s_e[h] being 1 or 0
+            this->F[i][h] = (this->s_e[h] & 1<<i) ? std::sqrt (_F / Flt{N}) : Flt{0};
 
             // Term 3 is the output expression for gene i
             if constexpr (debug_compute_dadt) {
                 if (h == 0) {
                     std::cout << "F[i][h=0]: " << this->F[i][h];
-                    std::cout << ", s[" << h << "] = " << morph::bn::GeneNet<N,K>::state_str(this->s[h]) << std::endl;
+                    std::cout << ", s_e[" << h << "] = " << morph::bn::GeneNet<N,K>::state_str(this->s_e[h]) << std::endl;
                 }
             }
 
@@ -141,4 +183,4 @@ public:
         }
     }
 
-}; // RD_Bool1
+}; // RD_Bool2

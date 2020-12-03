@@ -91,11 +91,11 @@ public:
     alignas(alignof(std::vector<Flt>))
     std::vector<Flt> beta;
 
-    //! Explicit variable for sigma(a_i)
+    //! Explicit variable for T(a_i)
     alignas(alignof(std::vector<std::vector<Flt> >))
-    std::vector<std::vector<Flt> > sigma;
+    std::vector<std::vector<Flt> > T;
 
-    //! The function F[G(s),sigma(a_1),...,sigma(a_N)]
+    //! The function F[G(s),T(a_1),...,T(a_N)]
     alignas(alignof(std::vector<std::vector<Flt> >))
     std::vector<std::vector<Flt> > F;
 
@@ -124,7 +124,7 @@ public:
         // a member of this class (via its parent, RD_Base)
         this->resize_vector_vector (this->a, N);
         this->resize_vector_vector (this->F, N);
-        this->resize_vector_vector (this->sigma, N);
+        this->resize_vector_vector (this->T, N);
         this->resize_vector_array_vector (this->grad_a, N);
         this->resize_vector_param (this->alpha, N);
         this->resize_vector_param (this->D, N);
@@ -136,7 +136,7 @@ public:
     virtual void init()
     {
         this->zero_vector_vector (this->F, N);
-        this->zero_vector_vector (this->sigma, N);
+        this->zero_vector_vector (this->T, N);
         this->zero_vector_array_vector (this->grad_a, N);
 
         this->zero_vector_vector (this->a, N);
@@ -178,7 +178,7 @@ public:
     }
 
     //! Compute inputs for the gene regulatory network, its next developed step (for
-    //! each hex) and its outputs, storing these in this->sigma and this->s.
+    //! each hex) and its outputs, storing these in this->T and this->s.
     virtual void compute_genenet() = 0;
 
     virtual void compute_dadt (const size_t i, std::vector<Flt>& a_, std::vector<Flt>& dadt) = 0;

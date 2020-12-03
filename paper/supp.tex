@@ -234,11 +234,11 @@ products.
 
 The average protein densities, $a_i$ for each of $N$ genes operating in the
 cells within a spatial element are continuously valued. Pass these through a
-threshold function, $\sigma()$ to (i) determine whether a gene's input to a
+threshold function, $T()$ to (i) determine whether a gene's input to a
 gene regulatory network (GRN) is on or off (forming a current state, $s$) and
 (ii) obtain a value for the `strength' of that gene's input. Operate the GRN,
 $G$, on $s$ and use its output for the $i^{th}$ protein, $G_i$, along with
-$\sigma_1,...,\sigma_N$ as inputs to a function $F_i$, which determines how much
+$T_1,...,T_N$ as inputs to a function $F_i$, which determines how much
 to add to the protein density $a_i$ (modulating by a parameter, $\beta_i$). Allow
 proteins to diffuse with constant $D_i$ (perhaps choose two representative
 length scales for cell-cell interactions and morphogen-type diffusion). Give
@@ -249,22 +249,22 @@ fast- and slow-decay proteins). Then we can write $N$ differential equations as:
 
 \begin{equation} \label{eq:bd}
 \frac{\partial a_i(\mb{x},t)}{\partial t} = D_i \dvrg a_i(\mb{x},t) -\alpha_i
-a_i(\mb{x},t) + \beta_i F_i\big(G_i(s), \sigma(a_1),...,\sigma(a_N)\big)
+a_i(\mb{x},t) + \beta_i F_i\big(G_i(s), T(a_1),...,T(a_N)\big)
 \end{equation}
 
 where $s$ is the current state of gene protein expression and the operation of
 the GRN on $s$ gives a new state, $s'$: $s' = G(s)$.
 
-During implementation, I decided that the function $\sigma()$ should
+During implementation, I decided that the function $T()$ should
 operate something like this:
 
 \begin{equation} \label{eq:sigma}
-\sigma(a_i) = a_i - \xi,
+T(a_i) = a_i - \xi,
 \end{equation}
 
 where $\xi$ is a threshold protein density. If $a_i$ exceeds $\xi$, then
 element $i$ of the current GRN state, $s$ is considered to be 1. If $a_i$ does
-not exceed $\xi$, then element $i$ of $s$ is 0 and $\sigma(a_i)$ has a
+not exceed $\xi$, then element $i$ of $s$ is 0 and $T(a_i)$ has a
 negative value. The $N$ elements, $s_i$, of state $s$ can be written:
 
 \begin{equation} \label{eq:s}
@@ -276,19 +276,19 @@ s_i = \begin{cases}
 or, equivalently:
 \begin{equation} \label{eq:s2}
 s_i = \begin{cases}
-      1 & \sigma(a_i) > 0 \\
-      0 & \sigma(a_i) \leq 0
+      1 & T(a_i) > 0 \\
+      0 & T(a_i) \leq 0
       \end{cases}
 \end{equation}
 
-The existing state $s$ is processed by the GRN, $s' = G(s)$, and so $s' = G(\sigma(a_1),...,\sigma(a_N))$.
+The existing state $s$ is processed by the GRN, $s' = G(s)$, and so $s' = G(T(a_1),...,T(a_N))$.
 
 Finally, the function $F$ was chosen so that its elements were given by:
 
 \begin{equation} \label{eq:F}
 F_i = \begin{cases}
 0 & G_i = 0 \\
-\sqrt{\frac{1}{N}\sum_j^N \sigma(a_j)^2}  & G_i = 1
+\sqrt{\frac{1}{N}\sum_j^N T(a_j)^2}  & G_i = 1
 \end{cases}
 \end{equation}
 
@@ -305,7 +305,7 @@ initialised the system with varous `points of expression' or `humps of
 expression' above a background initialisation equal to the expression
 threshold, $\xi$. The $a_i$ decayed and diffused according to the selected
 parameters $D$ and $\alpha$. Where expression was substantially above
-threshold, you see peaks for $\sigma$ and corresponding expression
+threshold, you see peaks for $T$ and corresponding expression
 ($F$). However, there seems to be no way to create spatial structure which
 is not fairly directly associated with the initial conditions.
 
@@ -329,29 +329,33 @@ timeframe for which gene production would persist, once switched on. Another
 would be to implement different 'switch off' thresholds from 'switch on'
 thresholds.
 
-Perhaps I need both of these ideas in a new model.
-
 I could also include genome bits to switch between short/long diffusion
-constants and slow/fast decay.
+constants and slow/fast decay, to allow an evolutionary process to modify this
+aspect of the system.
 
-%
-%BIBLIOGRAPHY
-%
+\cite{seirinlee_aberrant_2010} point out that gene expression induces significant
+problems for Turing like reaction-diffusion patterning.
+
+\cite{gaffney_gene_2006} describes delays in transcription and translation of
+tens of minutes (or even hours), which are similar to the timescales of
+developmental events. They used 1/decay as the time delay value, which I will
+copy.
+
+\cite{monk_oscillatory_2003} gives a specific example of a gene expression
+system with delays.
+
+\section{System 2}
+
+At t=0, compute the state of each hex. Now run the simulation forwards,
+allowing diffusion and decay to proceed for $1/(\alpha dt)$ timesteps. At this
+point, test the state, and determine if the gene production in each hex should
+change. In those for which it \emph{should} change, set a time of last changea
+to the current time and simulate forwards, checking at each time step if any
+hex should undergo a state change.
+
+% BIBLIOGRAPHY
 \selectlanguage{English}
 \bibliographystyle{abbrvnotitle}
-% The bibliography NoTremor.bib is the one exported from Zotero. It
-% may be necessary to run my UTF-8 cleanup script, bbl_utf8_to_latex.sh
-%%\bibliography{NoTremor}
-%
-% It produces this:
-\begin{thebibliography}{1}
-
-\bibitem{kauffman_origins_1993}
-Stuart~A.~Kauffman.
-\newblock {\em The {Origins} of {Order:} {Self-Organization} and {Selection}
-in {Evolution}}.
-\newblock New York: Oxford University Press, 1993.
-
-\end{thebibliography}
+\bibliography{BooleanDiffusion}
 
 \end{document}
