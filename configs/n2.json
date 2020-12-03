@@ -16,7 +16,7 @@
     "z_default" : -0.5,
     "win_width" : 2048,
     "win_height" : 768,
-    "map3d" : false,
+    "map3d" : true,
 
     "graph_mean_ymax" : 0.8,
     "graph_single_ymax" : 1,
@@ -25,7 +25,7 @@
     "graph_hexgi" : 0,
 
     "desc_genome" : "Leave blank to choose randomly. 4-4 does 'I express only if I express' 2-2 does 'I express only if only the other gene expresses'",
-    "genome" : "2-2",
+    "genome" : "",
 
     "sect_ellipse" : "Ellipse parameters",
     "ellipse_a" : 0.15,
@@ -34,7 +34,7 @@
     "sect_model_params" : "Boolean Diffusion Parameters",
     "expression_threshold" : 0.45,
     "model_params": [
-        { "alpha" : 0.1, "D" : 0.0005, "beta" : 100, "name" : "a", "tag" : "MSB" },
-        { "alpha" : 0.1, "D" : 0.005,  "beta" : 10, "name" : "b" } // seems to apply to gene a on graph...
+        { "alpha" : 1, "D" : 0.0005, "beta" : 1, "name" : "a", "tag" : "MSB" },
+        { "alpha" : 1, "D" : 0.005,  "beta" : 1, "name" : "b" } // seems to apply to gene a on graph...
     ]
 }

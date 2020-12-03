@@ -53,20 +53,25 @@ public:
     {
         RD_Bool<Flt, N, K>::allocate();
         // Note: Setting tsc to -1 at start
-        this->tsc.resize (N, -1);
-        this->s_e.resize (N, 0);
+        this->tsc.resize (this->nhex, -1);
+        this->s_e.resize (this->nhex, 0);
     }
 
     virtual void init()
     {
         std::cout << "RD_Bool2::init()\n";
         RD_Bool<Flt, N, K>::init();
+#if 0
         Flt _alpha = Flt{0};
         for (size_t i = 0; i < N; ++i) {
             _alpha += this->alpha[i];
         }
         _alpha /= Flt{N};
-        this->expression_delay = (int) (Flt{1}/(_alpha*this->dt));
+        this->expression_delay = (int) (Flt{1}/_alpha);
+#else
+        this->expression_delay = 80;
+#endif
+        std::cout << "expression_delay is " << this->expression_delay << std::endl;
     }
 
     virtual void init_a()
@@ -118,7 +123,7 @@ public:
                 if (this->s[h] != this->s_e[h]) {
                     // Developing state is different from the previous expressing state,
                     // so update it, and set timestamp.
-                    std::cout << "Updating state for hex " << h << " at timestep " << this->stepCount << std::endl;
+                    //std::cout << "Updating state for hex " << h << " at timestep " << this->stepCount << std::endl;
                     this->s_e[h] = this->s[h];
                     this->tsc[h] = static_cast<int>(this->stepCount);
                 }

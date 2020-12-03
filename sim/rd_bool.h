@@ -155,23 +155,18 @@ public:
     {
     }
 
-    void save()
+    virtual void save()
     {
         std::stringstream fname;
         fname << this->logpath << "/dat_";
         fname.width(5);
         fname.fill('0');
         fname << this->stepCount << ".h5";
-        try {
-            std::cout << "Opening HDF5 file " << fname.str() << std::endl;
-            morph::HdfData data(fname.str(), false, true);
-            for (unsigned int i = 0; i<N; ++i) {
-                std::stringstream path;
-                path << "/a_" << i;
-                data.add_contained_vals (path.str().c_str(), this->a[i]);
-            }
-        } catch (const std::exception& e) {
-            std::cerr << "ERROR: Failed to save data:" << e.what() << std::endl;
+        morph::HdfData data(fname.str());
+        for (unsigned int i = 0; i<N; ++i) {
+            std::stringstream path;
+            path << "/a_" << i;
+            data.add_contained_vals (path.str().c_str(), this->a[i]);
         }
     }
 
