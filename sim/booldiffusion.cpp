@@ -145,7 +145,7 @@ int main (int argc, char **argv)
      * Simulation instanciation
      */
 
-    RD_Bool<FLT, N, K> RD;
+    RD_Bool1<FLT, N, K> RD;
 
     RD.svgpath = ""; // We'll do an elliptical boundary, so set svgpath empty
     RD.ellipse_a = conf.getDouble ("ellipse_a", 0.8);
