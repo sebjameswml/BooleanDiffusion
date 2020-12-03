@@ -135,6 +135,7 @@ public:
     //! Initilization and any one-time computations required of the model.
     virtual void init()
     {
+        std::cout << "RD_Bool::init()\n";
         this->zero_vector_vector (this->F, N);
         this->zero_vector_vector (this->T, N);
         this->zero_vector_array_vector (this->grad_a, N);
@@ -161,11 +162,16 @@ public:
         fname.width(5);
         fname.fill('0');
         fname << this->stepCount << ".h5";
-        morph::HdfData data(fname.str());
-        for (unsigned int i = 0; i<N; ++i) {
-            std::stringstream path;
-            path << "/a_" << i;
-            data.add_contained_vals (path.str().c_str(), this->a[i]);
+        try {
+            std::cout << "Opening HDF5 file " << fname.str() << std::endl;
+            morph::HdfData data(fname.str());
+            for (unsigned int i = 0; i<N; ++i) {
+                std::stringstream path;
+                path << "/a_" << i;
+                data.add_contained_vals (path.str().c_str(), this->a[i]);
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "ERROR: Failed to save data:" << e.what() << std::endl;
         }
     }
 

@@ -45,7 +45,7 @@ public:
     std::vector<morph::bn::state_t> s_e;
 
     //! How long to delay expression, in timesteps. Equal to 1/(alpha * dt)
-    int expression_delay = 0;
+    int expression_delay;
 
     RD_Bool2() : RD_Bool<Flt, N, K>() {}
 
@@ -57,18 +57,21 @@ public:
         this->s_e.resize (N, 0);
     }
 
-#if 0
     virtual void init()
     {
+        std::cout << "RD_Bool2::init()\n";
         RD_Bool<Flt, N, K>::init();
+        Flt _alpha = Flt{0};
         for (size_t i = 0; i < N; ++i) {
-            this->expression_delay[i] = (int)1/(this->alpha[i]*this->dt)
+            _alpha += this->alpha[i];
         }
+        _alpha /= Flt{N};
+        this->expression_delay = (int) (Flt{1}/(_alpha*this->dt));
     }
-#endif
 
     virtual void init_a()
     {
+        std::cout << "RD_Bool2::init_a()\n";
         this->gauss.gain = 1.0;
         this->gauss.sigma = 0.05;
         this->gauss.sigmasq = this->gauss.sigma * this->gauss.sigma;
