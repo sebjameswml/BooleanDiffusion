@@ -1,7 +1,7 @@
 {
     "sect_global" : "Global simulation parameters",
     "desc_steps" : "The number of steps to simulate for",
-    "steps" : 1000,
+    "steps" : 4000,
     "logevery": 200,
     "plotevery": 5,
     "vidframes": true,

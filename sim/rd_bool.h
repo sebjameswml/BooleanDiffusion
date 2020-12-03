@@ -164,7 +164,7 @@ public:
         fname << this->stepCount << ".h5";
         try {
             std::cout << "Opening HDF5 file " << fname.str() << std::endl;
-            morph::HdfData data(fname.str());
+            morph::HdfData data(fname.str(), false, true);
             for (unsigned int i = 0; i<N; ++i) {
                 std::stringstream path;
                 path << "/a_" << i;

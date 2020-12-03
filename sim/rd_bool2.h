@@ -106,14 +106,11 @@ public:
                 this->s[h] = 0x0;
                 // Check each gene to find out if its concentration is above threshold.
                 for (size_t i = 0; i < N; ++i) {
-
                     // Set s based on a[i][h]
                     this->s[h] |= (this->a[i][h] > this->expression_threshold ? 0x1 : 0x0) << i;
-
                     // T is a function that returns the amount by which a is above
                     // (or below if negative) the expression threshold.
                     this->T[i][h] = this->a[i][h] - this->expression_threshold;
-
                 }
                 // Now have the current state, see what the next state is. grn.develop() is
                 // G() in the notes and this line turns s into s':
@@ -121,6 +118,7 @@ public:
                 if (this->s[h] != this->s_e[h]) {
                     // Developing state is different from the previous expressing state,
                     // so update it, and set timestamp.
+                    std::cout << "Updating state for hex " << h << " at timestep " << this->stepCount << std::endl;
                     this->s_e[h] = this->s[h];
                     this->tsc[h] = static_cast<int>(this->stepCount);
                 }
