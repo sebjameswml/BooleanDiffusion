@@ -1,9 +1,9 @@
 {
     "sect_global" : "Global simulation parameters",
     "desc_steps" : "The number of steps to simulate for",
-    "steps" : 4000,
-    "logevery": 200,
-    "plotevery": 5,
+    "steps" : 750,
+    "logevery": 20,
+    "plotevery": 20,
     "vidframes": true,
     "saveplots": true,
     "overwrite_logs": true,
@@ -17,6 +17,7 @@
     "win_width" : 2048,
     "win_height" : 768,
     "map3d" : true,
+    "autoscalecolour" : false, "desc_autoscalecolour" : "true: autoscale colour on gene expression each frame",
 
     "graph_mean_ymax" : 0.8,
     "graph_single_ymax" : 1,
@@ -26,15 +27,25 @@
 
     "desc_genome" : "Leave blank to choose randomly. 4-4 does 'I express only if I express' 2-2 does 'I express only if only the other gene expresses'",
     "genome" : "",
+    "desc_grad_genome" : "Leave blank to choose randomly. 2-8 Does 'A climbs B and B climbs A'",
+    "grad_genome" : "0-0",
 
     "sect_ellipse" : "Ellipse parameters",
     "ellipse_a" : 0.15,
     "ellipse_b" : 0.07,
 
     "sect_model_params" : "Boolean Diffusion Parameters",
-    "expression_threshold" : 0.45,
-    "model_params": [
-        { "alpha" : 1, "D" : 0.0005, "beta" : 1, "name" : "a", "tag" : "MSB" },
-        { "alpha" : 1, "D" : 0.005,  "beta" : 1, "name" : "b" } // seems to apply to gene a on graph...
+    "expression_threshold" : 0.1,
+    "expression_delay" : 30,
+    "model_params" : [
+        { "alpha" : 0.5, "D" : 0.05, "beta" : 20, "gamma" : 0.2, "name" : "a", "tag" : "MSB" },
+        { "alpha" : 0.05, "D" : 0.0005,  "beta" : 20, "gamma" : 0.2, "name" : "b" } // seems to apply to gene a on graph...
+    ],
+
+    "dest_init_a" : "Initialize the gene expressions to expression_threshold plus these Gaussians",
+    "init_a" : [
+        {"name" : "a", "gain" : 1, "sigma" : 0.1, "x" : 0, "y" : 0 },
+        {"name" : "a", "gain" : 1, "sigma" : 0.1, "x" : 0.1, "y" : 0 },
+        {"name" : "b", "gain" : 1, "sigma" : 0.1, "x" : 0, "y" : 0 }
     ]
 }

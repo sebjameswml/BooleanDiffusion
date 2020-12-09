@@ -182,6 +182,10 @@ public:
     //! each hex) and its outputs, storing these in this->T and this->s.
     virtual void compute_genenet() = 0;
 
+    virtual void compute_grad_a()
+    {
+    }
+
     virtual void compute_dadt (const size_t i, std::vector<Flt>& a_, std::vector<Flt>& dadt) = 0;
 
     //! Perform one step in the simulation. Will hope not to need to extend this method.

@@ -229,6 +229,24 @@ are called morphogens. Another way is for the cells to reproduce, so that
 there are more cells which will generate a particular combination of gene
 products.
 
+The authors of \cite{seirinlee_aberrant_2010} point out that gene expression
+induces significant problems for reaction-diffusion patterns that arise as a
+result of the Turing instability.
+
+\cite{gaffney_gene_2006} describes delays in transcription and translation of
+tens of minutes (or even hours), which are similar to the timescales of
+developmental events. They used 1/decay as the time delay value, which I will
+copy.
+
+\cite{monk_oscillatory_2003} gives a specific example of a gene expression
+system with delays.
+
+For these reasons I didn't want to make a Turing-style RD system. Instead, I'm
+exploring a kind of gene-directed `reaction-clockwork' system, which I am
+imagining might progress through a sequence of developmental stages, before
+settling on a stable configuration, somewhat equivalent to the limit cycles of
+the Boolean network in \cite{wilson_limit_2019}.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{First system}
 
@@ -269,13 +287,6 @@ negative value. The $N$ elements, $s_i$, of state $s$ can be written:
 
 \begin{equation} \label{eq:s}
 s_i = \begin{cases}
-      1 & a_i > \xi \\
-      0 & a_i \leq \xi
-      \end{cases}
-\end{equation}
-or, equivalently:
-\begin{equation} \label{eq:s2}
-s_i = \begin{cases}
       1 & T(a_i) > 0 \\
       0 & T(a_i) \leq 0
       \end{cases}
@@ -315,43 +326,88 @@ What additional features could the gene products have? One idea is to
 associate the ability to follow gradients in expression of other gene
 products. This might be a cell division response to a morphogen, where newly
 created cells tend to move in the direction of the signalling gradient. Thus,
-a gene product could have N-1 sets of bits which determine whether that gene
+a gene product could have $N-1$ sets of bits which determine whether that gene
 product movies down the gradient of gene $i$ or up the gradient of gene
-$i$. If both of these bits were high, then they would cancel out, thuse the
-most probable state woudl be to not follow gradient of gene $i$. This would
+$i$. If both of these bits were high, then they would cancel out, thus the
+most probable state would be to not follow gradient of gene $i$. This would
 add $2 N (N-1)$ bits to the genome of $N 2^N$ bits. This would allow the
 genome to determine spatial structure.
+
+This would require the definition of a `gene flux', $\mb{J}_i$, whose
+divergence contributes to the calculation of $\dot{a}_i$ (in place of the pure
+diffusion of Eq.\,\ref{eq:bd}):
+
+\begin{equation}\label{eq:bd2divJ}
+\nabla\vcdot\mb{J}_i = \nabla\vcdot\bigg( D\nabla a_i + \gamma a_i \sum_{j\ne i}^N
+H(i,j) \nabla a_j \bigg)
+\end{equation}
+
+Here, $H(i,j)$ is a function, controlled by the `gradient genome', which can
+have value 0, 1 or -1. It determines whether gene $i$ will climb ($H=1$) or
+descend ($H=-1$) the gradient of expression of gene $j$. $H$ could also
+specify the strength of interaction between gene products $i$ and $j$, perhaps
+selecting in a Boolean manner (i.e. with bits in the genome) between `strong'
+and `weak', but I will probably place that in a simple parameter, $\gamma$ (as
+above) or $\gamma_{i,j}$ to begin with.
+
+By the vector product rule, each of the non-zero elements of the sum contribute
+
+\begin{equation}\label{eq:JH}
+\pm  \gamma \nabla \vcdot \big( a_i \nabla a_j \big )\
+= \pm \gamma \big( a_i \nabla \vcdot \nabla a_j + \nabla a_j \vcdot \nabla a_i \big)
+\end{equation}
+
+to $\nabla\vcdot\mb{J}i$. The divergence of $a_j$ can be computed using
+Gauss's theorem on a hex lattice (as for the Barrels simulation and as for the
+diffusion term $D\nabla\vcdot\nabla a_i$. All the 2D gradients will need to be
+computed at each timestep. The expression of all genes will need to fall off
+towards the domain boundary in order to ensure that $\mb{J}i$ is 0 on the
+boundary.
+
+This gives the equation specifying a new model as
+
+\begin{equation} \label{eq:bd2}
+\frac{\partial a_i(\mb{x},t)}{\partial t} = \nabla\vcdot\mb{J}_i -\alpha_i
+a_i(\mb{x},t) + \beta_i F_i\big(G_i(s), T(a_1),...,T(a_N)\big)
+\end{equation}
 
 Another thought relates to timeframes. One issue in the model described is
 that when we switch into a new state, that state may not persist, and its gene
 products may not be produced for long. One idea would be to implement a
-timeframe for which gene production would persist, once switched on. Another
-would be to implement different 'switch off' thresholds from 'switch on'
-thresholds.
+timeframe for which gene production would persist, once switched on:
+
+At t=0, compute the state of each hex. Now run the simulation forwards,
+allowing diffusion and decay to proceed for $1/(\alpha dt)$ timesteps (Not
+sure this is the right relation\,---\,have put in a parameter for the time over
+which production takes place). At this point, test the state, and determine if
+the gene production in each hex should change. In those for which
+it \emph{should} change, set a time of last change to the current time and
+simulate forwards, checking at each time step if any hex should undergo a
+state change.
+
+Another way to approach timeframes would be to implement different `switch
+off' thresholds from `switch on' thresholds.
 
 I could also include genome bits to switch between short/long diffusion
 constants and slow/fast decay, to allow an evolutionary process to modify this
 aspect of the system.
 
-\cite{seirinlee_aberrant_2010} point out that gene expression induces significant
-problems for Turing like reaction-diffusion patterning.
+The system is somewhat unstable as specified above. I'd especially like to
+have significant accumulation of a gene product i.e. large $\beta$, but
+without the propensity for the gene expression to explode. I could put F
+through a sigmoid, or I could divide by $a_i$ (problematic, as $a_i=0$ leads
+to division-by-zero).
 
-\cite{gaffney_gene_2006} describes delays in transcription and translation of
-tens of minutes (or even hours), which are similar to the timescales of
-developmental events. They used 1/decay as the time delay value, which I will
-copy.
+I'm also unsure about the necessity of having a modulation of the gene
+production by the amount by which $a_i$ exceeds the threshold. Let's remove
+this feature so that Eq.\,\ref{eq:bd2} becomes:
 
-\cite{monk_oscillatory_2003} gives a specific example of a gene expression
-system with delays.
+\begin{equation} \label{eq:bd2_simplified}
+\frac{\partial a_i(\mb{x},t)}{\partial t} = \nabla\vcdot\mb{J}_i -\alpha_i
+a_i(\mb{x},t) + \beta_i G_i(s)
+\end{equation}
 
-\section{System 2}
-
-At t=0, compute the state of each hex. Now run the simulation forwards,
-allowing diffusion and decay to proceed for $1/(\alpha dt)$ timesteps. At this
-point, test the state, and determine if the gene production in each hex should
-change. In those for which it \emph{should} change, set a time of last changea
-to the current time and simulate forwards, checking at each time step if any
-hex should undergo a state change.
+where $s$ is given in Eq.\,\ref{eq:s}.
 
 % BIBLIOGRAPHY
 \selectlanguage{English}

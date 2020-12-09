@@ -1,9 +1,9 @@
 {
     "sect_global" : "Global simulation parameters",
     "desc_steps" : "The number of steps to simulate for",
-    "steps" : 10000,
+    "steps" : 2000,
     "logevery": 100,
-    "plotevery": 50,
+    "plotevery": 1,
     "saveplots": true,
     "overwrite_logs": true,
     "desc_hextohex_d" : "Hex to hex distance, determines num hexes",
@@ -14,17 +14,32 @@
     "y_default" : -0.001833,
     "z_default" : -0.5,
 
+    "win_width" : 2048,
+    "win_height" : 768,
+    "map3d" : false,
+
+    "graph_mean_ymax" : 0.8,
+    "graph_single_ymax" : 1,
+    "desc_graph_hex" : "The hex for which a single trace is given in the left graph",
+    "graph_hexri" : 7,
+    "graph_hexgi" : 0,
+
+    "desc_genome" : "Leave blank to choose randomly",
+    "genome" : "",
+    "desc_grad_genome" : "Leave blank to choose randomly",
+    "grad_genome" : "",
+
     "sect_ellipse" : "Ellipse parameters",
     "ellipse_a" : 0.15,
     "ellipse_b" : 0.07,
 
     "sect_model_params" : "Boolean Diffusion Parameters",
-    "expression_threshold" : 0.5,
+    "expression_threshold" : 0.1,
     "model_params": [
-        { "alpha" : 1, "D" : 0.001,  "beta" : 5, "name" : "a" },
-        { "alpha" : 1, "D" : 0.0001, "beta" : 5, "name" : "b" },
-        { "alpha" : 1, "D" : 0.0001, "beta" : 5, "name" : "c" },
-        { "alpha" : 1, "D" : 0.001,  "beta" : 5, "name" : "d" },
-        { "alpha" : 1, "D" : 0.0001, "beta" : 5, "name" : "e" }
+        { "alpha" : 1, "D" : 0.001,  "beta" : 0.1, "gamma" : 0.02, "name" : "a" },
+        { "alpha" : 1, "D" : 0.0001, "beta" : 0.1, "gamma" : 0.02, "name" : "b" },
+        { "alpha" : 1, "D" : 0.0001, "beta" : 0.1, "gamma" : 0.02, "name" : "c" },
+        { "alpha" : 1, "D" : 0.001,  "beta" : 0.1, "gamma" : 0.02, "name" : "d" },
+        { "alpha" : 1, "D" : 0.0001, "beta" : 0.1, "gamma" : 0.02, "name" : "e" }
     ]
 }

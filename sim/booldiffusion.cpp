@@ -43,7 +43,7 @@ void savePngs (const std::string& logpath, const std::string& name,
     v.saveImage (ff1.str());
 }
 // A convenience typedef
-typedef morph::VisualDataModel<FLT>* VdmPtr;
+typedef morph::VisualDataModel<FLT>* VdmFltPtr;
 typedef morph::VisualDataModel<morph::bn::state_t>* VdmStatePtr;
 #endif
 
@@ -121,6 +121,9 @@ int main (int argc, char **argv)
     const bool vidframes = conf.getBool ("vidframes", false);
     unsigned int framecount = 0;
 
+    // Auto-scale colour on the main gene expression maps?
+    const bool autoscalecolour = conf.getBool ("autoscalecolour", false);
+
     // Window width and height
     const unsigned int win_width = conf.getUInt ("win_width", 1920UL);
     unsigned int win_height_default = static_cast<unsigned int>(0.5625f * (float)win_width);
@@ -178,8 +181,15 @@ int main (int argc, char **argv)
         RD.alpha[N-i-1] = v.get("alpha", 1.0).asDouble();
         RD.D[N-i-1] = v.get("D", 0.01).asDouble();
         RD.beta[N-i-1] = v.get("beta", 0.1).asDouble();
+#if defined BD_MARK2
+        RD.gamma[N-i-1] = v.get("gamma", 1).asDouble();
+#endif
+
     }
     RD.expression_threshold = conf.getDouble ("expression_threshold", 0.5f);
+#if defined BD_MARK2
+    RD.expression_delay = conf.getDouble ("expression_delay", 1.0f);
+#endif
 
     RD.init();
 
@@ -190,7 +200,13 @@ int main (int argc, char **argv)
     if (!setgenome.empty()) {
         RD.genome.set (setgenome);
     }
-
+#if defined BD_MARK2
+    std::string setgradgenome = conf.getString ("grad_genome", "");
+    if (!setgradgenome.empty()) {
+        RD.grad_genome.set (setgradgenome);
+    }
+    std::cout << "Genome: " << RD.genome << "::" << RD.grad_genome << std::endl;
+#endif
     std::cout << RD.genome.table() << std::endl;
 
     std::cout << "Gene tables:\n";
@@ -405,12 +421,14 @@ int main (int argc, char **argv)
             // the CPU recomputing the OpenGL vertices for the visualizations.
             morph::gl::Util::checkError (__FILE__, __LINE__);
             for (unsigned int i = 0; i < N; ++i) {
-                VdmPtr avm = (VdmPtr)v1.getVisualModel (grids[i]);
+                VdmFltPtr avm = (VdmFltPtr)v1.getVisualModel (grids[i]);
                 avm->updateData (&(RD.a[i])); // First call to updateData.
-                //avm->clearAutoscale();
-                avm = (VdmPtr)v1.getVisualModel (overthresh[i]);
+                if (autoscalecolour == true) {
+                    avm->clearAutoscale();
+                }
+                avm = (VdmFltPtr)v1.getVisualModel (overthresh[i]);
                 avm->updateData (&(RD.T[i]));
-                avm = (VdmPtr)v1.getVisualModel (expressing[i]);
+                avm = (VdmFltPtr)v1.getVisualModel (expressing[i]);
                 avm->updateData (&(RD.F[i]));
             }
 
@@ -466,7 +484,10 @@ int main (int argc, char **argv)
     std::string tnow = morph::Tools::timeNow();
     conf.set ("sim_ran_at_time", tnow.substr(0,tnow.size()-1));
     conf.set ("hextohex_d", RD.hextohex_d);
-    conf.set ("final_genome", RD.genome.str());
+    conf.set ("genome_used", RD.genome.str());
+#if defined BD_MARK2
+    conf.set ("grad_genome_used", RD.grad_genome.str());
+#endif
     conf.set ("dt", RD.get_dt());
     if (argc > 0) { conf.set("argv0", argv[0]); }
     if (argc > 1) { conf.set("argv1", argv[1]); }
