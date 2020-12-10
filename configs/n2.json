@@ -3,7 +3,7 @@
     "desc_steps" : "The number of steps to simulate for",
     "steps" : 750,
     "logevery": 20,
-    "plotevery": 20,
+    "plotevery": 1,
     "vidframes": true,
     "saveplots": true,
     "overwrite_logs": true,
@@ -26,7 +26,7 @@
     "graph_hexgi" : 0,
 
     "desc_genome" : "Leave blank to choose randomly. 4-4 does 'I express only if I express' 2-2 does 'I express only if only the other gene expresses'",
-    "genome" : "",
+    "genome" : "2-b", // 2-b
     "desc_grad_genome" : "Leave blank to choose randomly. 2-8 Does 'A climbs B and B climbs A'",
     "grad_genome" : "0-0",
 
@@ -36,16 +36,15 @@
 
     "sect_model_params" : "Boolean Diffusion Parameters",
     "expression_threshold" : 0.1,
-    "expression_delay" : 30,
+    "expression_delay" : 80,
     "model_params" : [
-        { "alpha" : 0.5, "D" : 0.05, "beta" : 20, "gamma" : 0.2, "name" : "a", "tag" : "MSB" },
-        { "alpha" : 0.05, "D" : 0.0005,  "beta" : 20, "gamma" : 0.2, "name" : "b" } // seems to apply to gene a on graph...
+        { "alpha" : 0.25, "D" : 0.05, "beta" : 20, "gamma" : 0.2, "name" : "a", "tag" : "MSB" },
+        { "alpha" : 0.25, "D" : 0.0005,  "beta" : 20, "gamma" : 0.2, "name" : "b" } // seems to apply to gene a on graph...
     ],
 
-    "dest_init_a" : "Initialize the gene expressions to expression_threshold plus these Gaussians",
+    "dest_init_a" : "Initialize the gene expressions to expression_threshold plus these Gaussians. NOT IMPLEMENTED YET",
     "init_a" : [
-        {"name" : "a", "gain" : 1, "sigma" : 0.1, "x" : 0, "y" : 0 },
-        {"name" : "a", "gain" : 1, "sigma" : 0.1, "x" : 0.1, "y" : 0 },
-        {"name" : "b", "gain" : 1, "sigma" : 0.1, "x" : 0, "y" : 0 }
+        {"name" : "a", "idx" : 1, "gain" : 1, "sigma" : 0.05, "x" : 0.05,  "y" : 0, "bg" : 0.0 },
+        {"name" : "b", "idx" : 0, "gain" : 0, "sigma" : 0.05, "x" : -0.05, "y" : 0, "bg" : 0.1  }
     ]
 }

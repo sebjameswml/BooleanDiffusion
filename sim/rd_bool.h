@@ -55,6 +55,8 @@ struct GaussParams
     Flt sigmasq;
     Flt x;
     Flt y;
+    //! The background activation, to which the Gaussian will be added.
+    Flt bg = Flt{0};
 };
 
 /*!

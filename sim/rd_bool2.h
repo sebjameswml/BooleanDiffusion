@@ -48,15 +48,32 @@
  * A small collection of parameters to define width and location of a symmetric
  * (i.e. circular) 2D Gaussian.
  */
-template <class Flt>
-struct GaussParams
+template <typename Flt> struct GaussParams;
+template <typename Flt> std::ostream& operator<< (std::ostream&, const GaussParams<Flt>&);
+template <typename Flt> struct GaussParams
 {
     Flt gain;
     Flt sigma;
     Flt sigmasq;
     Flt x;
     Flt y;
+    //! The background activation, to which the Gaussian will be added.
+    Flt bg = Flt{0};
+    std::string str() const
+    {
+        std::stringstream ss;
+        ss << "Gaussian with gain=" << gain << ", sigma=" << sigma << ", at location (" << x << "," << y  << ")";
+        if (bg != Flt{0}) { ss << " with background " << bg; }
+        return ss.str();
+    }
+    //! Overload the stream output operator
+    friend std::ostream& operator<< <Flt> (std::ostream& os, const GaussParams<Flt>& gp);
 };
+template <typename Flt> std::ostream& operator<< (std::ostream& os, const GaussParams<Flt>& gp)
+{
+    os << gp.str();
+    return os;
+}
 
 /*!
  * Reaction diffusion system in which the reaction is an NK model (a Boolean gene
@@ -143,7 +160,7 @@ public:
     Flt expression_threshold = 0.5f;
 
     //! Shape for initialisation of a
-    GaussParams<Flt> gauss;
+    std::multimap<unsigned int, GaussParams<Flt>> initialHumps;
 
     //! Default constructor
     RD_Bool2() : morph::RD_Base<Flt>() {}
@@ -182,11 +199,7 @@ public:
         this->zero_vector_vector (this->divJ, N);
         this->zero_vector_array_vector (this->J, N);
 
-        this->zero_vector_vector (this->a, N);
         this->init_a();
-
-        this->expression_delay = 80;
-        std::cout << "expression_delay is " << this->expression_delay << std::endl;
 
         this->twoOver3dd = Flt{2} / Flt{3} * this->d * this->d;
         for (size_t i = 0; i < N; ++i) {
@@ -201,28 +214,19 @@ public:
     //! Gaussians, most simply.
     virtual void init_a()
     {
-        this->gauss.gain = 1.0;
-        this->gauss.sigma = 0.05;
-        this->gauss.sigmasq = this->gauss.sigma * this->gauss.sigma;
-        this->gauss.x = 0.05;
-        this->gauss.y = 0;
+        this->zero_vector_vector (this->a, N);
 
-        this->set_vector_vector (this->a, N, this->expression_threshold);
-
-        // Initialise a[N-1] which is 'Gene a'
-        for (auto h : this->hg->hexen) {
-            Flt dsq = morph::MathAlgo::distance_sq<Flt> ({this->gauss.x, this->gauss.y}, {h.x, h.y});
-            this->a[N-1][h.vi] = this->gauss.gain * std::exp (-dsq / (Flt{2} * this->gauss.sigmasq));
+        for (auto ih : this->initialHumps) {
+            unsigned int idx = ih.first;
+            if (idx >= N) { continue; }
+            // Initialise a[idx]
+            std::cout << "Init a[" << idx << "] with params: " << ih.second << "\n";
+            for (auto h : this->hg->hexen) {
+                this->a[idx][h.vi] += ih.second.bg;
+                Flt dsq = morph::MathAlgo::distance_sq<Flt> ({ih.second.x, ih.second.y}, {h.x, h.y});
+                this->a[idx][h.vi] += ih.second.gain * std::exp (-dsq / (Flt{2} * ih.second.sigmasq));
+            }
         }
-
-#if 0
-        // a[n-2] or 'Gene b'
-        this->gauss.x = -0.05;
-        for (auto h : this->hg->hexen) {
-            Flt dsq = morph::MathAlgo::distance_sq<Flt> ({this->gauss.x, this->gauss.y}, {h.x, h.y});
-            this->a[N-2][h.vi] = this->gauss.gain * std::exp (-dsq / (Flt{2} * this->gauss.sigmasq));
-        }
-#endif
     }
 
     virtual void save()

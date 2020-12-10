@@ -188,7 +188,27 @@ int main (int argc, char **argv)
     }
     RD.expression_threshold = conf.getDouble ("expression_threshold", 0.5f);
 #if defined BD_MARK2
-    RD.expression_delay = conf.getDouble ("expression_delay", 1.0f);
+    RD.expression_delay = conf.getInt ("expression_delay", 1);
+    std::cout << "Expression delay is " << RD.expression_delay << " timesteps\n";
+#endif
+
+#if defined BD_MARK2
+    const Json::Value init_a_params = conf.getArray ("init_a");
+    npar = static_cast<unsigned int>(init_a_params.size());
+    for (unsigned int i = 0; i < npar; ++i) {
+        Json::Value v = init_a_params[i];
+        int idx = v.get ("idx", -1).asInt();
+        if (idx >= 0) {
+            GaussParams<FLT> gp;
+            gp.gain = v.get ("gain", 1.0).asDouble();
+            gp.sigma = v.get ("sigma", 1.0).asDouble();
+            gp.sigmasq = gp.sigma * gp.sigma;
+            gp.x = v.get ("x", 0.0).asDouble();
+            gp.y = v.get ("y", 0.0).asDouble();
+            gp.bg = v.get ("bg", 0.0).asDouble();
+            RD.initialHumps.insert (std::make_pair((unsigned int)idx, gp));
+        }
+    }
 #endif
 
     RD.init();
@@ -205,12 +225,17 @@ int main (int argc, char **argv)
     if (!setgradgenome.empty()) {
         RD.grad_genome.set (setgradgenome);
     }
-    std::cout << "Genome: " << RD.genome << "::" << RD.grad_genome << std::endl;
-#endif
+    std::cout << "Full genome: " << RD.genome << "::" << RD.grad_genome << std::endl;
+    std::cout << "Transcription genome:\n";
     std::cout << RD.genome.table() << std::endl;
-
-    std::cout << "Gene tables:\n";
+    std::cout << "Per-gene tables:\n";
     std::cout << morph::bn::GeneNet<N,K>::gene_tables(RD.genome) << std::endl;
+    std::cout << RD.grad_genome.table() << std::endl;
+#else
+    std::cout << RD.genome.table() << std::endl;
+    std::cout << "Per-gene tables:\n";
+    std::cout << morph::bn::GeneNet<N,K>::gene_tables(RD.genome) << std::endl;
+#endif
 
     // Create a log directory if necessary, and exit on any failures.
     if (morph::Tools::dirExists (logpath) == false) {
