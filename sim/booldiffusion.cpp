@@ -141,6 +141,8 @@ int main (int argc, char **argv)
     // You can lock movement of the scene
     v1.sceneLocked = conf.getBool ("sceneLocked", false);
     v1.scenetrans_stepsize = 0.5;
+    // Config can tell the program to finish as soon as the sim is done
+    v1.readyToFinish = conf.getBool ("finish_asap", false);
 
     // if using plotting, then set up the render clock
     std::chrono::steady_clock::time_point lastrender = std::chrono::steady_clock::now();
