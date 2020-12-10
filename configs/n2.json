@@ -1,9 +1,9 @@
 {
     "sect_global" : "Global simulation parameters",
     "desc_steps" : "The number of steps to simulate for",
-    "steps" : 750,
+    "steps" : 2000,
     "logevery": 20,
-    "plotevery": 1,
+    "plotevery": 20,
     "vidframes": true,
     "saveplots": true,
     "overwrite_logs": true,
@@ -26,9 +26,9 @@
     "graph_hexgi" : 0,
 
     "desc_genome" : "Leave blank to choose randomly. 4-4 does 'I express only if I express' 2-2 does 'I express only if only the other gene expresses'",
-    "genome" : "2-b", // 2-b
+    "genome" : "2-B",
     "desc_grad_genome" : "Leave blank to choose randomly. 2-8 Does 'A climbs B and B climbs A'",
-    "grad_genome" : "0-0",
+    "grad_genome" : "0-3",
 
     "sect_ellipse" : "Ellipse parameters",
     "ellipse_a" : 0.15,
@@ -39,12 +39,12 @@
     "expression_delay" : 80,
     "model_params" : [
         { "alpha" : 0.25, "D" : 0.05, "beta" : 20, "gamma" : 0.2, "name" : "a", "tag" : "MSB" },
-        { "alpha" : 0.25, "D" : 0.0005,  "beta" : 20, "gamma" : 0.2, "name" : "b" } // seems to apply to gene a on graph...
+        { "alpha" : 0.25, "D" : 0.0005,  "beta" : 20, "gamma" : 0.2, "name" : "b" }
     ],
 
-    "dest_init_a" : "Initialize the gene expressions to expression_threshold plus these Gaussians. NOT IMPLEMENTED YET",
+    "dest_init_a" : "Initialize the gene expressions according to these Gaussians. Background level can also be set. Multiple entries in the array for the same gene index (idx) are permitted - they simply sum together.",
     "init_a" : [
-        {"name" : "a", "idx" : 1, "gain" : 1, "sigma" : 0.05, "x" : 0.05,  "y" : 0, "bg" : 0.0 },
+        {"name" : "a", "idx" : 1, "gain" : 1, "sigma" : 0.05, "x" : 0.05,  "y" : 0, "bg" : 0.05 },
         {"name" : "b", "idx" : 0, "gain" : 0, "sigma" : 0.05, "x" : -0.05, "y" : 0, "bg" : 0.1  }
     ]
 }
