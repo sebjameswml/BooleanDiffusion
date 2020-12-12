@@ -8,7 +8,7 @@
     "saveplots": true,
     "overwrite_logs": true,
     "desc_hextohex_d" : "Hex to hex distance, determines num hexes",
-    "hextohex_d" : 0.02,
+    "hextohex_d" : 0.005,
     "boundaryFalloffDist" : 0.01,
     "dt" : 0.0005,
     "x_default" : 0.1924,
@@ -31,8 +31,8 @@
     "grad_genome" : "0-3",
 
     "sect_ellipse" : "Ellipse parameters",
-    "ellipse_a" : 0.15,
-    "ellipse_b" : 0.07,
+    "ellipse_a" : 0.6,
+    "ellipse_b" : 0.28,
 
     "sect_model_params" : "Boolean Diffusion Parameters",
     "expression_threshold" : 0.1,
