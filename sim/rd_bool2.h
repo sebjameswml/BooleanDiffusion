@@ -364,7 +364,7 @@ public:
         //this->compute_laplace (a_, lap_a);
         this->compute_divJ (a_, i);
 
-//#pragma omp parallel for
+#pragma omp parallel for
         for (unsigned int h=0; h<this->nhex; ++h) {
 
             // Note: 'term1' is divJ[i][h], as computed by compute_divJ(), above.
@@ -418,7 +418,7 @@ public:
     virtual void compute_dadt (const size_t i, std::vector<Flt>& a_, std::vector<Flt>& dadt)
     {
         this->compute_divJ (a_, i);
-//#pragma omp parallel for
+#pragma omp parallel for
         for (unsigned int h=0; h<this->nhex; ++h) {
             // Note: 'term1' is divJ[i][h], as computed by compute_divJ(), above.
             Flt term2 = - this->alpha[i] * a_[h];

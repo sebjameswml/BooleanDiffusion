@@ -16,7 +16,11 @@ set(CMAKE_CXX_STANDARD 17)
 if (APPLE)
   set(CMAKE_CXX_FLAGS "${OS_DEFINITION} -Wall -Wfatal-errors -g -O3")
 else() # assume g++ (or a gcc/g++ mimic like Clang)
-  set(CMAKE_CXX_FLAGS "${OS_DEFINITION} -Wall -Wfatal-errors -g -Wno-unused-result -Wno-unknown-pragmas -march=native -O3")
+  if (CMAKE_CXX_COMPILER_ID MATCHES Intel)
+    set(CMAKE_CXX_FLAGS "${OS_DEFINITION} -Wall -g -std=c++17 -xHOST -O3 -D__ICC__")
+  else() # GCC or Clang
+    set(CMAKE_CXX_FLAGS "${OS_DEFINITION} -Wall -Wfatal-errors -g -Wno-unused-result -Wno-unknown-pragmas -march=native -O3")
+  endif()
 endif()
 
 # Tell clang to be quiet about brace initialisers:
