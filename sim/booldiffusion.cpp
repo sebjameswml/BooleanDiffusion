@@ -243,6 +243,7 @@ int main (int argc, char **argv)
     std::cout << "Per-gene tables:\n";
     std::cout << morph::bn::GeneNet<N,K>::gene_tables(RD.genome) << std::endl;
     std::cout << RD.grad_genome.table() << std::endl;
+
 #else
     std::cout << RD.genome.table() << std::endl;
     std::cout << "Per-gene tables:\n";
@@ -275,6 +276,13 @@ int main (int argc, char **argv)
     RD.savePositions();
 
 #ifdef COMPILE_PLOTTING
+    // Labels
+    v1.addLabel (RD.genome.table(), {0.8f, -0.16f, 0.0f},
+                 morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
+# if defined BD_MARK2
+    v1.addLabel (RD.grad_genome.shorttable(), {1.0f, -0.16f, 0.0f},
+                 morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
+# endif
     // Before starting the simulation, create the HexGridVisuals.
 
     // Spatial offset, for positioning of HexGridVisuals
