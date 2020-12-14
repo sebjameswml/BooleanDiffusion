@@ -111,6 +111,15 @@ int main (int argc, char **argv)
         }
     }
 
+    // Requested genome and gradient genome
+    std::string requested_genome = conf.getString ("genome", "");
+#if defined BD_MARK2
+    std::string requested_gradgenome = conf.getString ("grad_genome", "");
+    std::string title_str = requested_genome + " : " + requested_gradgenome;
+#else
+    std::string title_str = requested_genome;
+#endif
+
 #ifdef COMPILE_PLOTTING
     // Parameters from the config that apply only to plotting:
     const unsigned int plotevery = conf.getUInt ("plotevery", 10);
@@ -134,7 +143,8 @@ int main (int argc, char **argv)
 
     // Set up the morph::Visual object which provides the visualization scene (and
     // a GLFW window to show it in)
-    morph::Visual v1 (win_width, win_height, "Boolean Diffusion");
+    morph::Visual v1 (win_width, win_height, title_str);
+
     // Set a dark blue background (black is the default). This value has the order
     // 'RGBA', though the A(alpha) makes no difference.
     v1.bgcolour = {0.0f, 0.0f, 0.2f, 1.0f};
@@ -143,6 +153,8 @@ int main (int argc, char **argv)
     v1.scenetrans_stepsize = 0.5;
     // Config can tell the program to finish as soon as the sim is done
     v1.readyToFinish = conf.getBool ("finish_asap", false);
+    // The title is the genome, so show it.
+    v1.showTitle = true;
 
     // if using plotting, then set up the render clock
     std::chrono::steady_clock::time_point lastrender = std::chrono::steady_clock::now();
@@ -218,14 +230,12 @@ int main (int argc, char **argv)
     // After init, genome is randomized. To set from a previous state, do so here.
     // Set the funky genome
     //RD.genome = {0xb646dd22,0x76617edc,0x7046bfaa,0x58da51aa,0x13393d22};
-    std::string setgenome = conf.getString ("genome", "");
-    if (!setgenome.empty()) {
-        RD.genome.set (setgenome);
+    if (!requested_genome.empty()) {
+        RD.genome.set (requested_genome);
     }
 #if defined BD_MARK2
-    std::string setgradgenome = conf.getString ("grad_genome", "");
-    if (!setgradgenome.empty()) {
-        RD.grad_genome.set (setgradgenome);
+    if (!requested_gradgenome.empty()) {
+        RD.grad_genome.set (requested_gradgenome);
     }
     std::cout << "Full genome: " << RD.genome << "::" << RD.grad_genome << std::endl;
     std::cout << "Transcription genome:\n";
