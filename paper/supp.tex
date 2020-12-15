@@ -357,11 +357,11 @@ By the vector product rule, each of the non-zero elements of the sum contribute
 = \pm \gamma \big( a_i \nabla \vcdot \nabla a_j + \nabla a_j \vcdot \nabla a_i \big)
 \end{equation}
 
-to $\nabla\vcdot\mb{J}i$. The divergence of $a_j$ can be computed using
+to $\nabla\vcdot\mb{J}_i$. The divergence of $a_j$ can be computed using
 Gauss's theorem on a hex lattice (as for the Barrels simulation and as for the
 diffusion term $D\nabla\vcdot\nabla a_i$. All the 2D gradients will need to be
 computed at each timestep. The expression of all genes will need to fall off
-towards the domain boundary in order to ensure that $\mb{J}i$ is 0 on the
+towards the domain boundary in order to ensure that $\mb{J}_i$ is 0 on the
 boundary.
 
 This gives the equation specifying a new model as
@@ -408,6 +408,21 @@ a_i(\mb{x},t) + \beta_i G_i(s)
 \end{equation}
 
 where $s$ is given in Eq.\,\ref{eq:s}.
+
+Finally, in preparing the `second' boolean diffusion model
+(\code{rd\_bool2.h}) I removed the ability for $a_i$ to blow up by letting
+
+\begin{equation}\label{eq:tf_a}
+a_i(t+\delta t) = \begin{cases}
+0 & a_i(t+\delta t)_c \leq 0 \\
+\mathrm{tanh}(a_i(t+\delta t)_c) & a_i(t+\delta t)_c > 0
+\end{cases}
+\end{equation}
+
+where the subscript $c$ indicates the candidate computed value for $a_i$ at
+time $t+\delta t$. This transfer function is applied at each time step, and is
+justified on the basis that there is a limit to the rate at which cells can
+generate proteins \cite{Wray}.
 
 % BIBLIOGRAPHY
 \selectlanguage{English}
