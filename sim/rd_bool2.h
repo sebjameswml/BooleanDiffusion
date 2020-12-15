@@ -16,8 +16,7 @@
 #endif
 
 /*
- * This file provides the class RD_Bool, a base class for other boolean diffusion
- * implementations.
+ * This file provides the RD class for the second model.
  *
  * See paper/supp.tex
  *
@@ -77,7 +76,8 @@ template <typename Flt> std::ostream& operator<< (std::ostream& os, const GaussP
 
 /*!
  * Reaction diffusion system in which the reaction is an NK model (a Boolean gene
- * regulatory network).
+ * regulatory network) coupled with a similar genome for the gradient ascending (or
+ * descending) behaviour.
  */
 template <typename Flt, size_t N, size_t K>
 class RD_Bool2 : public morph::RD_Base<Flt>
@@ -357,64 +357,6 @@ public:
 
     static constexpr bool debug_compute_dadt = false;
 
-    // Old function, with F()
-    virtual void compute_dadt_withF (const size_t i, std::vector<Flt>& a_, std::vector<Flt>& dadt)
-    {
-        //std::vector<Flt> lap_a(this->nhex, 0.0);
-        //this->compute_laplace (a_, lap_a);
-        this->compute_divJ (a_, i);
-
-#pragma omp parallel for
-        for (unsigned int h=0; h<this->nhex; ++h) {
-
-            // Note: 'term1' is divJ[i][h], as computed by compute_divJ(), above.
-
-            Flt term2 = - this->alpha[i] * a_[h];
-
-            // s[h] is the current state of 'expressingness' for each gene, but should
-            // be modulated by the levels of reagents available. G[i][h] contains the
-            // input reagent levels of which we choose the minimum one (? or an
-            // average?) to modulate how much those genes that are being expressed ARE
-            // actually being expressed. For G's that are below threshold the 'G' is the
-            // amount by which G is below the threshold.
-
-            Flt _F = Flt{0};
-            for (size_t j = 0; j<N; ++j) {
-                if constexpr (debug_compute_dadt) {
-                    if (h == 0) {
-                        std::cout << "Adding " << (this->T[j][h] * this->T[j][h])
-                                  << " to _F for Gene " << j << std::endl;
-                    }
-                }
-                _F += this->T[j][h] * this->T[j][h];
-            }
-
-            // F is RMS of T squared or 0, depending on s_e[h] being 1 or 0
-            this->F[i][h] = (this->s_e[h] & 1<<i) ? std::sqrt (_F / Flt{N}) : Flt{0};
-
-            // Term 3 is the output expression for gene i
-            if constexpr (debug_compute_dadt) {
-                if (h == 0) {
-                    std::cout << "F[i][h=0]: " << this->F[i][h];
-                    std::cout << ", s_e[" << h << "] = "
-                              << morph::bn::GeneNet<N,K>::state_str(this->s_e[h]) << std::endl;
-                }
-            }
-
-            Flt term3 = a_[h] == Flt{0} ? Flt{0} : this->beta[i] * this->F[i][h] / a_[h];
-
-            dadt[h] = this->divJ[i][h] + term2 + term3;
-
-            if constexpr (debug_compute_dadt) {
-                if (h == 0) {
-                    std::cout << "dadt["<<i<<"]["<<h<<"] = " << this->divJ[i][h]
-                              << " + " << term2 << " + " << term3 << " = " << dadt[h]
-                              << "\n (a["<<i<<"]["<<h<<"] = " << this->a[i][h] << ")\n";
-                }
-            }
-        }
-    }
-
     virtual void compute_dadt (const size_t i, std::vector<Flt>& a_, std::vector<Flt>& dadt)
     {
         this->compute_divJ (a_, i);
@@ -506,3 +448,61 @@ public:
     }
 
 }; // RD_Bool
+
+#if 0
+    // First idea; unused. Old function, with F()
+    virtual void compute_dadt_withF (const size_t i, std::vector<Flt>& a_, std::vector<Flt>& dadt)
+    {
+        this->compute_divJ (a_, i);
+
+#pragma omp parallel for
+        for (unsigned int h=0; h<this->nhex; ++h) {
+
+            // Note: 'term1' is divJ[i][h], as computed by compute_divJ(), above.
+
+            Flt term2 = - this->alpha[i] * a_[h];
+
+            // s[h] is the current state of 'expressingness' for each gene, but should
+            // be modulated by the levels of reagents available. G[i][h] contains the
+            // input reagent levels of which we choose the minimum one (? or an
+            // average?) to modulate how much those genes that are being expressed ARE
+            // actually being expressed. For G's that are below threshold the 'G' is the
+            // amount by which G is below the threshold.
+
+            Flt _F = Flt{0};
+            for (size_t j = 0; j<N; ++j) {
+                if constexpr (debug_compute_dadt) {
+                    if (h == 0) {
+                        std::cout << "Adding " << (this->T[j][h] * this->T[j][h])
+                                  << " to _F for Gene " << j << std::endl;
+                    }
+                }
+                _F += this->T[j][h] * this->T[j][h];
+            }
+
+            // F is RMS of T squared or 0, depending on s_e[h] being 1 or 0
+            this->F[i][h] = (this->s_e[h] & 1<<i) ? std::sqrt (_F / Flt{N}) : Flt{0};
+
+            // Term 3 is the output expression for gene i
+            if constexpr (debug_compute_dadt) {
+                if (h == 0) {
+                    std::cout << "F[i][h=0]: " << this->F[i][h];
+                    std::cout << ", s_e[" << h << "] = "
+                              << morph::bn::GeneNet<N,K>::state_str(this->s_e[h]) << std::endl;
+                }
+            }
+
+            Flt term3 = a_[h] == Flt{0} ? Flt{0} : this->beta[i] * this->F[i][h] / a_[h];
+
+            dadt[h] = this->divJ[i][h] + term2 + term3;
+
+            if constexpr (debug_compute_dadt) {
+                if (h == 0) {
+                    std::cout << "dadt["<<i<<"]["<<h<<"] = " << this->divJ[i][h]
+                              << " + " << term2 << " + " << term3 << " = " << dadt[h]
+                              << "\n (a["<<i<<"]["<<h<<"] = " << this->a[i][h] << ")\n";
+                }
+            }
+        }
+    }
+#endif

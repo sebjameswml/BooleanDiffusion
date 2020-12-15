@@ -60,7 +60,7 @@ template<> morph::bn::Random<N,K>* morph::bn::Random<N,K>::pInstance = 0;
 int main (int argc, char **argv)
 {
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " /path/to/params.json" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " /path/to/params.json [0-0:0-0]" << std::endl;
         return 1;
     }
     std::string paramsfile (argv[1]);
@@ -68,6 +68,21 @@ int main (int argc, char **argv)
     if (!conf.ready) {
         std::cerr << "Error setting up JSON config: " << conf.emsg << std::endl;
         return 1;
+    }
+
+    // Optional genome parameter
+    std::string genome_arg("");
+    std::string gradgenome_arg("");
+    if (argc > 2) {
+        std::string option (argv[2]);
+        std::vector<std::string> gs = morph::Tools::stringToVector (option, ":");
+        if (gs.size() != N) {
+            throw std::runtime_error ("Malformed genome arg. Format: genome:gradgenome");
+        }
+        genome_arg = gs[0];
+        gradgenome_arg = gs[1];
+        std::cout << "User specified genome "<< genome_arg << std::endl;
+        std::cout << "User specified grad genome "<< gradgenome_arg << std::endl;
     }
 
     /*
@@ -113,11 +128,16 @@ int main (int argc, char **argv)
 
     // Requested genome and gradient genome
     std::string requested_genome = conf.getString ("genome", "");
+    if (!genome_arg.empty()) { requested_genome = genome_arg; }
+    std::string title_str("");
 #if defined BD_MARK2
     std::string requested_gradgenome = conf.getString ("grad_genome", "");
-    std::string title_str = requested_genome + " : " + requested_gradgenome;
+    if (!gradgenome_arg.empty()) { requested_gradgenome = gradgenome_arg; }
+    if (!requested_genome.empty() && !requested_gradgenome.empty()) {
+        title_str = requested_genome + " : " + requested_gradgenome;
+    }
 #else
-    std::string title_str = requested_genome;
+    title_str = requested_genome;
 #endif
 
 #ifdef COMPILE_PLOTTING
@@ -145,6 +165,8 @@ int main (int argc, char **argv)
     // a GLFW window to show it in)
     morph::Visual v1 (win_width, win_height, title_str);
 
+    // A bit of lighting is useful for 3d graphs
+    v1.lightingEffects (map3d);
     // Set a dark blue background (black is the default). This value has the order
     // 'RGBA', though the A(alpha) makes no difference.
     v1.bgcolour = {0.0f, 0.0f, 0.2f, 1.0f};
@@ -227,6 +249,17 @@ int main (int argc, char **argv)
 
     RD.init();
 
+    // Add a title label in case the title_str was empty at morph::Visual init
+    if (title_str.empty()) {
+        title_str = RD.genome.str();
+#if defined BD_MARK2
+        title_str += " : " + RD.grad_genome.str();
+#endif
+#ifdef COMPILE_PLOTTING
+        v1.addLabel (title_str, {0,0,0}, morph::colour::black, morph::VisualFont::Vera, 0.035f, 64);
+#endif
+    }
+
     // After init, genome is randomized. To set from a previous state, do so here.
     // Set the funky genome
     //RD.genome = {0xb646dd22,0x76617edc,0x7046bfaa,0x58da51aa,0x13393d22};
@@ -243,7 +276,6 @@ int main (int argc, char **argv)
     std::cout << "Per-gene tables:\n";
     std::cout << morph::bn::GeneNet<N,K>::gene_tables(RD.genome) << std::endl;
     std::cout << RD.grad_genome.table() << std::endl;
-
 #else
     std::cout << RD.genome.table() << std::endl;
     std::cout << "Per-gene tables:\n";
@@ -451,12 +483,12 @@ int main (int argc, char **argv)
     graph2->finalize();
     v1.addVisualModel (static_cast<morph::VisualModel*>(graph2));
 
+    bool pureplot = conf.getBool ("pureplot", false); // pureplot means we're rendering only as necessary for saving pngs
 #endif
 
     /*
      * Run the simulation
      */
-
     bool finished = false;
     while (finished == false) {
         RD.step();
@@ -483,6 +515,7 @@ int main (int argc, char **argv)
             avm->updateData (&(RD.s)); // First call to updateData.
 
             if (saveplots) {
+                v1.render();
                 if (vidframes) {
                     savePngs (logpath, "booldiffusion", framecount, v1);
                     ++framecount;
@@ -494,11 +527,13 @@ int main (int argc, char **argv)
 
         // rendering the graphics. After each simulation step, check if enough time
         // has elapsed for it to be necessary to call v1.render().
-        std::chrono::steady_clock::duration sincerender = std::chrono::steady_clock::now() - lastrender;
-        if (std::chrono::duration_cast<std::chrono::milliseconds>(sincerender).count() > 17) { // 17 is about 60 Hz
-            glfwPollEvents();
-            v1.render();
-            lastrender = std::chrono::steady_clock::now();
+        if (!pureplot) {
+            std::chrono::steady_clock::duration sincerender = std::chrono::steady_clock::now() - lastrender;
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(sincerender).count() > 17) { // 17 is about 60 Hz
+                glfwPollEvents();
+                v1.render();
+                lastrender = std::chrono::steady_clock::now();
+            }
         }
 #endif
         if ((RD.stepCount % logevery) == 0) {
