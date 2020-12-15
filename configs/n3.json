@@ -1,22 +1,24 @@
 {
     "sect_global" : "Global simulation parameters",
     "desc_steps" : "The number of steps to simulate for",
-    "steps" : 200000,
-    "logevery": 500,
-    "plotevery": 100,
+    "steps" : 4000,
+    "logevery": 20,
+    "plotevery": 20,
+    "pureplot" : false,
+    "vidframes": true,
     "saveplots": true,
     "overwrite_logs": true,
     "desc_hextohex_d" : "Hex to hex distance, determines num hexes",
     "hextohex_d" : 0.02,
     "boundaryFalloffDist" : 0.01,
-    "dt" : 0.000005,
+    "dt" : 0.0005,
     "x_default" : 0.1924,
     "y_default" : -0.001833,
     "z_default" : -0.5,
-
     "win_width" : 2048,
     "win_height" : 768,
-    "map3d" : false,
+    "map3d" : true,
+    "autoscalecolour" : false, "desc_autoscalecolour" : "true: autoscale colour on gene expression each frame",
 
     "graph_mean_ymax" : 0.8,
     "graph_single_ymax" : 1,
@@ -24,19 +26,28 @@
     "graph_hexri" : 7,
     "graph_hexgi" : 0,
 
-    "desc_genome" : "Leave blank to choose randomly",
+    "desc_genome" : "Leave blank to choose randomly. 4-4 does 'I express only if I express' 2-2 does 'I express only if only the other gene expresses'",
     "genome" : "",
-    "desc_grad_genome" : "Leave blank to choose randomly",
-    "grad_genome" : "2-0",
+    "desc_grad_genome" : "Leave blank to choose randomly. 2-8 Does 'A climbs B and B climbs A'",
+    "grad_genome" : "0-2-8",
 
     "sect_ellipse" : "Ellipse parameters",
     "ellipse_a" : 0.15,
     "ellipse_b" : 0.07,
 
     "sect_model_params" : "Boolean Diffusion Parameters",
-    "model_params": [
-        { "alpha" : 1, "D" : 0.05,  "beta" : 1, "gamma" : 0.02, "name" : "a", "tag" : "MSB" },
-        { "alpha" : 1, "D" : 0.0005, "beta" : 1, "gamma" : 0.02, "name" : "b" },
-        { "alpha" : 1, "D" : 0.0005, "beta" : 1, "gamma" : 0.02, "name" : "c" },
+    "expression_threshold" : 0.1,
+    "expression_delay" : 80,
+    "model_params" : [
+        { "alpha" : 0.25, "D" : 0.05, "beta" : 20, "gamma" : 0.2, "name" : "a", "tag" : "MSB" },
+        { "alpha" : 0.25, "D" : 0.0005,  "beta" : 20, "gamma" : 0.2, "name" : "b" },
+        { "alpha" : 0.25, "D" : 0.0005,  "beta" : 20, "gamma" : 0.2, "name" : "c" }
+    ],
+
+    "dest_init_a" : "Initialize the gene expressions according to these Gaussians. Background level can also be set. Multiple entries in the array for the same gene index (idx) are permitted - they simply sum together.",
+    "init_a" : [
+        {"name" : "a", "idx" : 2, "gain" : 1, "sigma" : 0.05, "x" : 0.05,  "y" : 0, "bg" : 0.05 },
+        {"name" : "b", "idx" : 1, "gain" : 0, "sigma" : 0.05, "x" : -0.05, "y" : 0, "bg" : 0.1  },
+        {"name" : "c", "idx" : 0, "gain" : 0, "sigma" : 0.05, "x" : -0.05, "y" : 0, "bg" : 0.1  }
     ]
 }
