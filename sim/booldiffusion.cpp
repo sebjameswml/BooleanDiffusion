@@ -329,10 +329,10 @@ int main (int argc, char **argv)
     // Z position scaling - how hilly/bumpy the visual will be.
     std::array<unsigned int, N> grids;
     v1.setCurrent();
+    // The second is the colour scaling. Set this to autoscale the same for all genes
+    morph::Scale<FLT> cscale_gene; cscale_gene.compute_autoscale (FLT{0}, FLT{1});
     for (int i = (N-1); i >= 0; i--) {
         morph::Scale<FLT> zscale; zscale.setParams ((map3d ? 0.2f : 0.0f), 0.0f);
-        // The second is the colour scaling. Set this to autoscale.
-        morph::Scale<FLT> cscale; cscale.do_autoscale = true;
         std::cout << "Create HexGridVisual for RD.a["<<i<<"]..." << std::endl;
 #ifdef BD_MARK3
         morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
@@ -340,7 +340,7 @@ int main (int argc, char **argv)
                                                                         spatOff,
                                                                         &(RD.a[i][RD.a_buf_next]),
                                                                         zscale,
-                                                                        cscale,
+                                                                        cscale_gene,
                                                                         morph::ColourMapType::Jet,
                                                                         0.0f, (map3d ? true : false));
 #else
@@ -349,7 +349,7 @@ int main (int argc, char **argv)
                                                                         spatOff,
                                                                         &(RD.a[i]),
                                                                         zscale,
-                                                                        cscale,
+                                                                        cscale_gene,
                                                                         morph::ColourMapType::Jet,
                                                                         0.0f, (map3d ? true : false));
 #endif
