@@ -165,6 +165,13 @@ public:
     //! Default constructor
     RD_Bool2() : morph::RD_Base<Flt>() {}
 
+    ~RD_Bool2()
+    {
+        if constexpr (use_expression_threshold == false) {
+            delete this->frng;
+        }
+    }
+
     //! Perform memory allocations, vector resizes and so on.
     virtual void allocate()
     {
@@ -188,6 +195,10 @@ public:
         // Note: Setting tsc to -1 at start
         this->tsc.resize (this->nhex, -1);
         this->s_e.resize (this->nhex, 0);
+
+        if constexpr (use_expression_threshold == false) {
+            this->frng = new morph::RandNormal<Flt>(0, Flt{0.01});
+        }
     }
 
     //! Initilization and any one-time computations required of the model.
@@ -252,10 +263,26 @@ public:
         return sum;
     }
 
+    //! If false, then instead of using expression threshold for computing this->s[h],
+    //! make a probabilistic determination of the state s.
+    static constexpr bool use_expression_threshold = true;
+
+    morph::RandNormal<Flt>* frng;
+
     //! Compute inputs for the gene regulatory network, its next developed step (for
     //! each hex) and its outputs, storing these in this->T and this->s.
     virtual void compute_genenet()
     {
+        if constexpr (use_expression_threshold == false) {
+            // Use this->T to hold random numbers
+            for (size_t i = 0; i < N; ++i) {
+                this->T[i] = this->frng->get (this->nhex);
+                for (unsigned int h=0; h<this->nhex; ++h) {
+                    this->T[i][h] += this->expression_threshold;
+                }
+            }
+        }
+
         // 1. Compute T(a_i) in each hex. In each hex, the state may be different
         for (unsigned int h=0; h<this->nhex; ++h) {
             if (this->tsc[h] == -1) {
@@ -263,9 +290,14 @@ public:
                 // Check each gene to find out if its concentration is above threshold.
                 for (size_t i = 0; i < N; ++i) {
                     // Set s based on a[i][h]
-                    this->s[h] |= (this->a[i][h] > this->expression_threshold ? 0x1 : 0x0) << i;
-                    // T is a function that returns the amount by which a is above
-                    // (or below if negative) the expression threshold.
+                    if constexpr (use_expression_threshold == true) {
+                        this->s[h] |= (this->a[i][h] > this->expression_threshold ? 0x1 : 0x0) << i;
+                    } else {
+                        this->s[h] |= (this->a[i][h] > this->T[i][h] ? 0x1 : 0x0) << i;
+                    }
+                    // T is a function that returns the amount by which a is above (or
+                    // below if negative) the expression threshold. Graphed, even if not
+                    // used.
                     this->T[i][h] = this->a[i][h] - this->expression_threshold;
                 }
                 // Now have the current state, see what the next state is. grn.develop() is
@@ -449,7 +481,7 @@ public:
 
 }; // RD_Bool
 
-#if 0
+#ifdef DADT_WITHF
     // First idea; unused. Old function, with F()
     virtual void compute_dadt_withF (const size_t i, std::vector<Flt>& a_, std::vector<Flt>& dadt)
     {

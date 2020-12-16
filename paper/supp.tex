@@ -276,7 +276,7 @@ the GRN on $s$ gives a new state, $s'$: $s' = G(s)$.
 During implementation, I decided that the function $T()$ should
 operate something like this:
 
-\begin{equation} \label{eq:sigma}
+\begin{equation} \label{eq:T}
 T(a_i) = a_i - \xi,
 \end{equation}
 
@@ -320,7 +320,7 @@ threshold, you see peaks for $T$ and corresponding expression
 ($F$). However, there seems to be no way to create spatial structure which
 is not fairly directly associated with the initial conditions.
 
-\section{Where next}
+\section{Second system}
 
 What additional features could the gene products have? One idea is to
 associate the ability to follow gradients in expression of other gene
@@ -422,7 +422,43 @@ a_i(t+\delta t) = \begin{cases}
 where the subscript $c$ indicates the candidate computed value for $a_i$ at
 time $t+\delta t$. This transfer function is applied at each time step, and is
 justified on the basis that there is a limit to the rate at which cells can
-generate proteins \cite{Wray}.
+generate proteins \cite{bray_protein_1995}.
+
+\subsection{Results}
+
+The introduction of gradient following gives rise to a variety of behaviours,
+including stable, unchanging systems, oscilating systems and systems which
+show dynamic behaviour which occurs on a timescale different from the inherent
+`forcing' frequency defined by the expression delay. Some of the systems look
+very much like cellular automata. The behaviours are all symmetric about the
+horizontal axis as there is no noise in system 2 and its initial condition is
+symmetric about the horizontal axis. Although the behaviours are promising,
+I'm going to look at a more justifiable scheme to dissassociate the nuclear
+gene-production timescale from the timescales defined by the diffusibility of
+the gene products.
+
+\section{Third system}
+
+The `expression delay' is problematic. The idea that the molecular gene
+machinery should be fixed into a specific state of production is difficult to
+justify physically. The reason for its existence is to stabilise the system
+with respect to the diffusion processes and model the fact that there are
+delays between the time that signalling proteins arrive at the cell surface
+and the time that mediating molecules make it into the nucleus, ready to
+deliver the signal to the genetic machinery. Rather than modelling the delay
+due to incoming signalling molecules, it could be easier to justify an
+out-going delay of the gene products in a given timestep. Add a circular
+buffer for each $a_i$ to represent the time it takes for a gene's nuclear mRNA
+product to be transferred via the cytoplasm and cell wall into the
+extracellular space where it can then signal either back to its original cell
+(autocrine signalling) or to other cells (para or juxtacrine signalling).
+
+Another idea that may be worth experimenting with is probabilistic
+determination of the gene expression state. Rather than using Eq.\,|ref{eq:s}
+to determine state from expression levels, make a probabilistic determination
+by drawing from a Gaussian centered on the current expression levels. This
+would change the very deterministic nature of the second system. In fact, I
+tried this in \code{rd\_bool2.h} (set \code{use\_expression\_threshold} false).
 
 % BIBLIOGRAPHY
 \selectlanguage{English}
