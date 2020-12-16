@@ -93,9 +93,16 @@ public:
     //! A genome for running the simulation
     morph::bn::Genome<N,K> genome;
 
-    //! These are the a_i(x,t) variables/
-    alignas(alignof(std::vector<std::vector<Flt> >))
-    std::vector<std::vector<Flt> > a;
+    //! These are the a_i(x,t) variables, where the innermost vector is a single buffer
+    //! of length nhex and there are a_delay buffers, to enable nuclear processes [the
+    //! function G()] to operate on delayed values of a.
+    alignas(alignof(std::vector<std::vector<std::vector<Flt>>>))
+    std::vector<std::vector<std::vector<Flt>>> a;
+
+    //! The number of timesteps that the signalling proteins are delayed as they are
+    //! 'communicated' into the nucleus in a form suitable to drive/influence the
+    //! genetic machinery.
+    alignas(size_t) size_t a_delay = 25;
 
     //! gradient of a
     alignas(alignof(std::vector<std::array<std::vector<Flt>, 2> >))
@@ -133,17 +140,15 @@ public:
     std::vector<std::vector<Flt> > F;
 
     //! The state of the gene network at each hex, computed by calling develop() on the
-    //! state constructed by looking at the expression levels of each gene, a[i]
-    alignas(alignof(std::vector<morph::bn::state_t>))
-    std::vector<morph::bn::state_t> s;
+    //! state constructed by looking at the expression levels of each gene, a[i]. There
+    //! are s_delay vectors of length nhex so that the function G(s) can be evaluated
+    //! based on delayed values of s.
+    alignas(alignof(std::vector<std::vector<morph::bn::state_t>>))
+    std::vector<std::vector<morph::bn::state_t>> s;
 
-    //! Time of state change, in steps. If -1, then state s may change, otherwise,
-    //! stepCount must exceed tsc[h] for hex h to change state.
-    alignas(alignof(std::vector<int>)) std::vector<int> tsc;
-
-    //! The expressing state of the hex.
-    alignas(alignof(std::vector<morph::bn::state_t>))
-    std::vector<morph::bn::state_t> s_e;
+    //! The number of timesteps that the nuclear state is delayed as it is
+    //! 'communicated' to the extracellular region as protein products.
+    alignas(size_t) size_t s_delay = 25;
 
     //! J_i(x,t) variables - the "flux current of axonal branches of type i". This is a
     //! vector field.
@@ -156,9 +161,6 @@ public:
 
     //! Genome holding the interactions between N genes for gradient ascending/descending.
     morph::bn::GradGenome<N> grad_genome;
-
-    //! How long to delay expression, in timesteps.
-    int expression_delay = 1;
 
     //! The gene expression threshold
     Flt expression_threshold = 0.5f;
@@ -184,7 +186,16 @@ public:
         // Resize and zero-initialise the various containers. Note that the size of a
         // 'vector variable' is given by the number of hexes in the hex grid which is
         // a member of this class (via its parent, RD_Base)
-        this->resize_vector_vector (this->a, N);
+
+        // Resize/setup a
+        this->a.resize (N);
+        for (size_t i = 0; i < N; ++i) {
+            this->a[i].resize (this->a_delay);
+            for (size_t j = 0; j < this->a_delay; ++j) {
+                this->a[i][j].resize (this->nhex, 0);
+            }
+        }
+
         this->resize_vector_vector (this->F, N);
         this->resize_vector_vector (this->T, N);
         this->resize_vector_array_vector (this->grad_a, N);
@@ -193,12 +204,14 @@ public:
         this->resize_vector_param (this->twoDover3dd, N);
         this->resize_vector_param (this->beta, N);
         this->resize_vector_param (this->gamma, N);
-        this->s.resize (this->nhex, 0);
+
+        this->s.resize (this->s_delay);
+        for (size_t j = 0; j < this->s_delay; ++j)  {
+            this->s[j].resize (this->nhex, 0);
+        }
+
         this->resize_vector_vector (this->divJ, N);
         this->resize_vector_array_vector (this->J, N);
-        // Note: Setting tsc to -1 at start
-        this->tsc.resize (this->nhex, -1);
-        this->s_e.resize (this->nhex, 0);
 
         if constexpr (use_expression_threshold == false) {
             this->frng = new morph::RandNormal<Flt>(0, Flt{0.01});
@@ -229,17 +242,20 @@ public:
     //! Gaussians, most simply.
     virtual void init_a()
     {
-        this->zero_vector_vector (this->a, N);
-
         for (auto ih : this->initialHumps) {
             unsigned int idx = ih.first;
             if (idx >= N) { continue; }
             // Initialise a[idx]
             std::cout << "Init a[" << idx << "] with params: " << ih.second << "\n";
             for (auto h : this->hg->hexen) {
-                this->a[idx][h.vi] += ih.second.bg;
                 Flt dsq = morph::MathAlgo::distance_sq<Flt> ({ih.second.x, ih.second.y}, {h.x, h.y});
-                this->a[idx][h.vi] += ih.second.gain * std::exp (-dsq / (Flt{2} * ih.second.sigmasq));
+                Flt gval = ih.second.gain * std::exp (-dsq / (Flt{2} * ih.second.sigmasq));
+                for (size_t j = 0; j < this->a_delay; ++j) {
+                    // Add background value
+                    this->a[idx][j][h.vi] += ih.second.bg;
+                    // And Gaussian
+                    this->a[idx][j][h.vi] += gval;
+                }
             }
         }
     }
@@ -255,15 +271,17 @@ public:
         for (size_t i = 0; i<N; ++i) {
             std::stringstream path;
             path << "/a_" << i;
-            data.add_contained_vals (path.str().c_str(), this->a[i]);
+            data.add_contained_vals (path.str().c_str(), this->a[i][this->stepCount % this->a_delay]);
         }
     }
 
-    //! Compute the sum of variable a[_i]
+    //! Compute the sum of variable a[_i][:][current]
     Flt sum_a (size_t _i)
     {
         Flt sum = Flt{0};
-        for (auto _a : this->a[_i]) { sum += _a; }
+        for (size_t h=0; h < this->nhex; ++h) {
+            sum += this->a[_i][this->stepCount % this->a_delay][h];
+        }
         return sum;
     }
 
@@ -289,37 +307,26 @@ public:
 
         // 1. Compute T(a_i) in each hex. In each hex, the state may be different
         for (unsigned int h=0; h<this->nhex; ++h) {
-            if (this->tsc[h] == -1) {
-                this->s[h] = 0x0;
-                // Check each gene to find out if its concentration is above threshold.
-                for (size_t i = 0; i < N; ++i) {
-                    // Set s based on a[i][h]
-                    if constexpr (use_expression_threshold == true) {
-                        this->s[h] |= (this->a[i][h] > this->expression_threshold ? 0x1 : 0x0) << i;
-                    } else {
-                        this->s[h] |= (this->a[i][h] > this->T[i][h] ? 0x1 : 0x0) << i;
-                    }
-                    // T is a function that returns the amount by which a is above (or
-                    // below if negative) the expression threshold. Graphed, even if not
-                    // used.
-                    this->T[i][h] = this->a[i][h] - this->expression_threshold;
+            // Note: this-> omitted for shorter lines in this function
+            //std::cout << "Set s["<<h<<"][" << s_buf_next << "] = 0\n";
+            this->s[s_buf_next][h] = 0x0;
+            // Check each gene (a_delay timesteps ago) to find out if its concentration is above threshold.
+            for (size_t i = 0; i < N; ++i) {
+                // Set s based on a[i][h]
+                if constexpr (use_expression_threshold == true) {
+                    this->s[s_buf_next][h] |= (a[i][a_buf_oldest][h] > expression_threshold ? 0x1 : 0x0) << i;
+                } else {
+                    this->s[s_buf_next][h] |= (a[i][a_buf_oldest][h] > T[i][h] ? 0x1 : 0x0) << i;
                 }
-                // Now have the current state, see what the next state is. grn.develop() is
-                // G() in the notes and this line turns s into s':
-                this->grn.develop (this->s[h], this->genome);
-                if (this->s[h] != this->s_e[h]) {
-                    // Developing state is different from the previous expressing state,
-                    // so update it, and set timestamp.
-                    //std::cout << "Updating state for hex " << h << " at timestep " << this->stepCount << std::endl;
-                    this->s_e[h] = this->s[h];
-                    this->tsc[h] = static_cast<int>(this->stepCount);
-                }
-            } else {
-                // tsc has a stepCount in it.
-                if (static_cast<int>(this->stepCount) - this->tsc[h] > this->expression_delay) {
-                    tsc[h] = -1;
-                }
+                // T is a function that returns the amount by which a is above (or
+                // below if negative) the expression threshold. Graphed, even if not
+                // used.
+                this->T[i][h] = a[i][a_buf_oldest][h] - expression_threshold;
             }
+            // Now have computed the current state, see what the next state is for the
+            // oldest s in the buffer. grn.develop() is G() in the notes and this line
+            // turns s into s':
+            this->grn.develop (s[s_buf_oldest][h], this->genome);
         }
     }
 
@@ -364,13 +371,13 @@ public:
                 } // else next j
 
                 if (Nterms[j] != Flt{0}) {
-                    Flt divaj_sum = -6 * this->a[j][hi];
-                    divaj_sum += this->a[j][(HAS_NE(hi)  ? NE(hi)  : hi)];
-                    divaj_sum += this->a[j][(HAS_NNE(hi) ? NNE(hi) : hi)];
-                    divaj_sum += this->a[j][(HAS_NNW(hi) ? NNW(hi) : hi)];
-                    divaj_sum += this->a[j][(HAS_NW(hi)  ? NW(hi)  : hi)];
-                    divaj_sum += this->a[j][(HAS_NSW(hi) ? NSW(hi) : hi)];
-                    divaj_sum += this->a[j][(HAS_NSE(hi) ? NSE(hi) : hi)];
+                    Flt divaj_sum = -6 * this->a[j][a_buf_cur][hi];
+                    divaj_sum += this->a[j][a_buf_cur][(HAS_NE(hi)  ? NE(hi)  : hi)];
+                    divaj_sum += this->a[j][a_buf_cur][(HAS_NNE(hi) ? NNE(hi) : hi)];
+                    divaj_sum += this->a[j][a_buf_cur][(HAS_NNW(hi) ? NNW(hi) : hi)];
+                    divaj_sum += this->a[j][a_buf_cur][(HAS_NW(hi)  ? NW(hi)  : hi)];
+                    divaj_sum += this->a[j][a_buf_cur][(HAS_NSW(hi) ? NSW(hi) : hi)];
+                    divaj_sum += this->a[j][a_buf_cur][(HAS_NSE(hi) ? NSE(hi) : hi)];
                     // Multiply sum by 2/3d^2 to give term1: a_i div(a_j)
                     Flt ai_divaj = fa[hi] * this->twoOver3dd * divaj_sum;
 
@@ -387,7 +394,7 @@ public:
     virtual void compute_grad_a()
     {
         for (size_t i = 0; i < N; ++i) {
-            this->spacegrad2D (this->a[i], this->grad_a[i]);
+            this->spacegrad2D (this->a[i][a_buf_cur], this->grad_a[i]);
         }
     }
 
@@ -400,9 +407,9 @@ public:
         for (unsigned int h=0; h<this->nhex; ++h) {
             // Note: 'term1' is divJ[i][h], as computed by compute_divJ(), above.
             Flt term2 = - this->alpha[i] * a_[h];
-            // s[h] is the current state of 'expressingness' for each gene. In this
-            // version of the function, F_i = s_i
-            this->F[i][h] = (this->s_e[h] & 1<<i) ? Flt{1} : Flt{0};
+            // s[h][blah] is the delayed state of 'expressingness' for each gene. In this
+            // version of the function, F_i = s_i.
+            this->F[i][h] = (this->s[s_buf_oldest][h] & 1<<i) ? Flt{1} : Flt{0};
             Flt term3 = this->beta[i] * this->F[i][h];
             dadt[h] = this->divJ[i][h] + term2 + term3;
         }
@@ -414,10 +421,34 @@ public:
         return (_a > Flt{0} ? std::tanh (_a) : Flt{0});
     }
 
+    //! a buffer index for current timestep
+    size_t a_buf_cur = 0;
+    //! a buffer index for last timestep
+    size_t a_buf_oldest = 0;
+    //! a buffer index for last timestep
+    size_t a_buf_next = 0;
+
+    //! s buffer index for current timestep
+    size_t s_buf_cur = 0;
+    //! s buffer index for oldest buffered timestep
+    size_t s_buf_oldest = 0;
+    //! s buffer index for last timestep
+    size_t s_buf_next = 0;
+
     //! Perform one step in the simulation. Will hope not to need to extend this method.
     virtual void step()
     {
+        // Compute buffer indices in one place.
+        this->a_buf_cur = this->stepCount % this->a_delay;
+        this->s_buf_cur = this->stepCount % this->s_delay;
+        this->a_buf_oldest = this->stepCount == 0 ? (this->a_delay - 1) : ((this->stepCount-1) % this->a_delay);
+        this->s_buf_oldest = this->stepCount == 0 ? (this->s_delay - 1) : ((this->stepCount-1) % this->s_delay);
         this->stepCount++;
+        this->a_buf_next = this->stepCount % this->a_delay;
+        this->s_buf_next = this->stepCount % this->s_delay;
+
+        //std::cout << "a_buf_cur = " << a_buf_cur << ", and a_buf_next = " << a_buf_next
+        //          << ". a_buf_oldest=" << a_buf_oldest << std::endl;
 
         this->compute_genenet();
 
@@ -437,11 +468,11 @@ public:
                 std::vector<Flt> K4(this->nhex, 0.0);
 
                 // Stage 1
-                this->compute_dadt (i, this->a[i], dadt);
+                this->compute_dadt (i, this->a[i][a_buf_cur], dadt); // Or maybe a[i][last]?
 #pragma omp parallel for
                 for (unsigned int h=0; h<this->nhex; ++h) {
                     K1[h] = dadt[h] * this->dt;
-                    atst[h] = this->a[i][h] + K1[h] * 0.5 ;
+                    atst[h] = this->a[i][a_buf_cur][h] + K1[h] * 0.5 ;
                 }
 
                 // Stage 2
@@ -449,7 +480,7 @@ public:
 #pragma omp parallel for
                 for (unsigned int h=0; h<this->nhex; ++h) {
                     K2[h] = dadt[h] * this->dt;
-                    atst[h] = this->a[i][h] + K2[h] * 0.5;
+                    atst[h] = this->a[i][a_buf_cur][h] + K2[h] * 0.5;
                 }
 
                 // Stage 3
@@ -457,7 +488,7 @@ public:
 #pragma omp parallel for
                 for (unsigned int h=0; h<this->nhex; ++h) {
                     K3[h] = dadt[h] * this->dt;
-                    atst[h] = this->a[i][h] + K3[h];
+                    atst[h] = this->a[i][a_buf_cur][h] + K3[h];
                 }
 
                 // Stage 4
@@ -465,80 +496,13 @@ public:
 #pragma omp parallel for
                 for (unsigned int h=0; h<this->nhex; ++h) {
                     K4[h] = dadt[h] * this->dt;
-                }
-
-                // Final sum together. This could be incorporated in the for loop for
-                // Stage 4, but I've separated it out for pedagogy.
-//#pragma omp parallel for
-                for (unsigned int h=0; h<this->nhex; ++h) {
                     Flt delta_a = ((K1[h] + 2.0 * (K2[h] + K3[h]) + K4[h])/(Flt)6.0);
-                    this->a[i][h] += delta_a;
-                }
-
-                for (unsigned int h=0; h<this->nhex; ++h) {
-                    this->a[i][h] = this->transfer_a (this->a[i][h]);
-                }
-
-            }
-        }
-    }
-
-}; // RD_Bool
-
-#ifdef DADT_WITHF
-    // First idea; unused. Old function, with F()
-    virtual void compute_dadt_withF (const size_t i, std::vector<Flt>& a_, std::vector<Flt>& dadt)
-    {
-        this->compute_divJ (a_, i);
-
-#pragma omp parallel for
-        for (unsigned int h=0; h<this->nhex; ++h) {
-
-            // Note: 'term1' is divJ[i][h], as computed by compute_divJ(), above.
-
-            Flt term2 = - this->alpha[i] * a_[h];
-
-            // s[h] is the current state of 'expressingness' for each gene, but should
-            // be modulated by the levels of reagents available. G[i][h] contains the
-            // input reagent levels of which we choose the minimum one (? or an
-            // average?) to modulate how much those genes that are being expressed ARE
-            // actually being expressed. For G's that are below threshold the 'G' is the
-            // amount by which G is below the threshold.
-
-            Flt _F = Flt{0};
-            for (size_t j = 0; j<N; ++j) {
-                if constexpr (debug_compute_dadt) {
-                    if (h == 0) {
-                        std::cout << "Adding " << (this->T[j][h] * this->T[j][h])
-                                  << " to _F for Gene " << j << std::endl;
-                    }
-                }
-                _F += this->T[j][h] * this->T[j][h];
-            }
-
-            // F is RMS of T squared or 0, depending on s_e[h] being 1 or 0
-            this->F[i][h] = (this->s_e[h] & 1<<i) ? std::sqrt (_F / Flt{N}) : Flt{0};
-
-            // Term 3 is the output expression for gene i
-            if constexpr (debug_compute_dadt) {
-                if (h == 0) {
-                    std::cout << "F[i][h=0]: " << this->F[i][h];
-                    std::cout << ", s_e[" << h << "] = "
-                              << morph::bn::GeneNet<N,K>::state_str(this->s_e[h]) << std::endl;
-                }
-            }
-
-            Flt term3 = a_[h] == Flt{0} ? Flt{0} : this->beta[i] * this->F[i][h] / a_[h];
-
-            dadt[h] = this->divJ[i][h] + term2 + term3;
-
-            if constexpr (debug_compute_dadt) {
-                if (h == 0) {
-                    std::cout << "dadt["<<i<<"]["<<h<<"] = " << this->divJ[i][h]
-                              << " + " << term2 << " + " << term3 << " = " << dadt[h]
-                              << "\n (a["<<i<<"]["<<h<<"] = " << this->a[i][h] << ")\n";
+                    // Place result in a_buf_next
+                    this->a[i][a_buf_next][h] += delta_a;
+                    this->a[i][a_buf_next][h] = this->transfer_a (this->a[i][a_buf_next][h]);
                 }
             }
         }
     }
-#endif
+
+}; // RD_Bool3

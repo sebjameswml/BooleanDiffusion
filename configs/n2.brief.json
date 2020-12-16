@@ -1,0 +1,50 @@
+{
+    "sect_global" : "Global simulation parameters",
+    "desc_steps" : "The number of steps to simulate for",
+    "steps" : 3,
+    "logevery": 1,
+    "plotevery": 1,
+    "vidframes": true,
+    "saveplots": true,
+    "overwrite_logs": true,
+    "desc_hextohex_d" : "Hex to hex distance, determines num hexes",
+    "hextohex_d" : 0.02,
+    "boundaryFalloffDist" : 0.01,
+    "dt" : 0.0005,
+    "x_default" : 0.1924,
+    "y_default" : -0.001833,
+    "z_default" : -0.5,
+    "win_width" : 2048,
+    "win_height" : 768,
+    "map3d" : true,
+    "autoscalecolour" : false, "desc_autoscalecolour" : "true: autoscale colour on gene expression each frame",
+
+    "graph_mean_ymax" : 0.8,
+    "graph_single_ymax" : 1,
+    "desc_graph_hex" : "The hex for which a single trace is given in the left graph",
+    "graph_hexri" : 7,
+    "graph_hexgi" : 0,
+
+    "desc_genome" : "Leave blank to choose randomly. 4-4 does 'I express only if I express' 2-2 does 'I express only if only the other gene expresses'",
+    "genome" : "2-b",
+    "desc_grad_genome" : "Leave blank to choose randomly. 2-8 Does 'A climbs B and B climbs A'",
+    "grad_genome" : "0-3",
+
+    "sect_ellipse" : "Ellipse parameters",
+    "ellipse_a" : 0.15,
+    "ellipse_b" : 0.07,
+
+    "sect_model_params" : "Boolean Diffusion Parameters",
+    "expression_threshold" : 0.1,
+    "expression_delay" : 80,
+    "model_params" : [
+        { "alpha" : 0.25, "D" : 0.05, "beta" : 20, "gamma" : 0.2, "name" : "a", "tag" : "MSB" },
+        { "alpha" : 0.25, "D" : 0.0005,  "beta" : 20, "gamma" : 0.2, "name" : "b" }
+    ],
+
+    "dest_init_a" : "Initialize the gene expressions according to these Gaussians. Background level can also be set. Multiple entries in the array for the same gene index (idx) are permitted - they simply sum together.",
+    "init_a" : [
+        {"name" : "a", "idx" : 1, "gain" : 1, "sigma" : 0.05, "x" : 0.05,  "y" : 0, "bg" : 0.05 },
+        {"name" : "b", "idx" : 0, "gain" : 0, "sigma" : 0.05, "x" : -0.05, "y" : 0, "bg" : 0.1  }
+    ]
+}

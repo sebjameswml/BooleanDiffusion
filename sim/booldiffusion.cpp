@@ -151,27 +151,23 @@ int main (int argc, char **argv)
     // rather than numbers that relate to the simulation timestep.
     const bool vidframes = conf.getBool ("vidframes", false);
     unsigned int framecount = 0;
-
     // Auto-scale colour on the main gene expression maps?
     const bool autoscalecolour = conf.getBool ("autoscalecolour", false);
-
     // Window width and height
     const unsigned int win_width = conf.getUInt ("win_width", 1920UL);
     unsigned int win_height_default = static_cast<unsigned int>(0.5625f * (float)win_width);
     const unsigned int win_height = conf.getUInt ("win_height", win_height_default);
-
-    // Do 3D maps or 2D maps?
+    // Plot 3D surface maps or 2D maps?
     const bool map3d = conf.getBool ("map3d", true);
-
     // Set up the morph::Visual object which provides the visualization scene (and
     // a GLFW window to show it in)
     morph::Visual v1 (win_width, win_height, title_str);
-
     // A bit of lighting is useful for 3d graphs
     v1.lightingEffects (map3d);
     // Set a dark blue background (black is the default). This value has the order
     // 'RGBA', though the A(alpha) makes no difference.
-    v1.bgcolour = {0.0f, 0.0f, 0.2f, 1.0f};
+    //v1.bgcolour = {0.0f, 0.0f, 0.04f, 1.0f};
+    v1.backgroundWhite();
     // You can lock movement of the scene
     v1.sceneLocked = conf.getBool ("sceneLocked", false);
     v1.scenetrans_stepsize = 0.5;
@@ -179,7 +175,6 @@ int main (int argc, char **argv)
     v1.readyToFinish = conf.getBool ("finish_asap", false);
     // The title is the genome, so show it.
     v1.showTitle = true;
-
     // if using plotting, then set up the render clock
     std::chrono::steady_clock::time_point lastrender = std::chrono::steady_clock::now();
 #endif
@@ -201,6 +196,10 @@ int main (int argc, char **argv)
     RD.logpath = logpath;
     RD.hextohex_d = conf.getFloat ("hextohex_d", 0.01f);
     RD.boundaryFalloffDist = conf.getFloat ("boundaryFalloffDist", 0.01f);
+#if defined BD_MARK2
+    RD.a_delay = conf.getInt ("expression_delay", 40);
+    RD.s_delay = conf.getInt ("state_delay", 40);
+#endif
     RD.allocate();
     RD.set_dt (static_cast<FLT>(conf.getDouble ("dt", 0.00001))); // The length of one timestep
 
@@ -227,7 +226,7 @@ int main (int argc, char **argv)
 
     }
     RD.expression_threshold = conf.getDouble ("expression_threshold", 0.5f);
-#if defined BD_MARK2 || defined BD_MARK3
+#if defined BD_MARK2
     RD.expression_delay = conf.getInt ("expression_delay", 1);
     std::cout << "Expression delay is " << RD.expression_delay << " timesteps\n";
 #endif
@@ -335,6 +334,16 @@ int main (int argc, char **argv)
         // The second is the colour scaling. Set this to autoscale.
         morph::Scale<FLT> cscale; cscale.do_autoscale = true;
         std::cout << "Create HexGridVisual for RD.a["<<i<<"]..." << std::endl;
+#ifdef BD_MARK3
+        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
+                                                                        RD.hg,
+                                                                        spatOff,
+                                                                        &(RD.a[i][RD.a_buf_next]),
+                                                                        zscale,
+                                                                        cscale,
+                                                                        morph::ColourMapType::Jet,
+                                                                        0.0f, (map3d ? true : false));
+#else
         morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
                                                                         RD.hg,
                                                                         spatOff,
@@ -343,6 +352,7 @@ int main (int argc, char **argv)
                                                                         cscale,
                                                                         morph::ColourMapType::Jet,
                                                                         0.0f, (map3d ? true : false));
+#endif
         std::stringstream ss;
         // MSB is 'a'
         char gc = 'a';
@@ -413,6 +423,15 @@ int main (int argc, char **argv)
     // What params to set on colour scale to ensure that 0 is min and 2^N is max?
     morph::Scale<morph::bn::state_t, float> cscale;
     cscale.compute_autoscale (0, static_cast<morph::bn::state_t>(1<<N));
+#ifdef BD_MARK3
+    morph::HexGridVisual<morph::bn::state_t>* hgv1 = new morph::HexGridVisual<morph::bn::state_t> (v1.shaderprog, v1.tshaderprog,
+                                                                                                   RD.hg,
+                                                                                                   stateGraph,
+                                                                                                   &(RD.s[RD.s_buf_next]),
+                                                                                                   zscale,
+                                                                                                   cscale,
+                                                                                                   morph::ColourMapType::Jet);
+#else
     morph::HexGridVisual<morph::bn::state_t>* hgv1 = new morph::HexGridVisual<morph::bn::state_t> (v1.shaderprog, v1.tshaderprog,
                                                                                                    RD.hg,
                                                                                                    stateGraph,
@@ -420,7 +439,7 @@ int main (int argc, char **argv)
                                                                                                    zscale,
                                                                                                    cscale,
                                                                                                    morph::ColourMapType::Jet);
-
+#endif
     hgv1->addLabel ("state", {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
     unsigned int grid_state = v1.addVisualModel (hgv1);
 
@@ -431,7 +450,7 @@ int main (int argc, char **argv)
     graph->setdarkbg(); // colours axes and text
     graph->twodimensional = false;
     graph->setlimits (0, steps, 0, conf.getFloat("graph_mean_ymax", 1.0f));
-    graph->policy = morph::stylepolicy::markers;
+    graph->policy = morph::stylepolicy::lines; // markers, both or allcolour
     graph->ylabel = "mean(a)";
     graph->xlabel = "Sim time";
     for (int i = N-1; i >= 0; i--) {
@@ -503,7 +522,11 @@ int main (int argc, char **argv)
             morph::gl::Util::checkError (__FILE__, __LINE__);
             for (unsigned int i = 0; i < N; ++i) {
                 VdmFltPtr avm = (VdmFltPtr)v1.getVisualModel (grids[i]);
-                avm->updateData (&(RD.a[i])); // First call to updateData.
+#ifdef BD_MARK3
+                avm->updateData (&(RD.a[i][RD.a_buf_next]));
+#else
+                avm->updateData (&(RD.a[i]));
+#endif
                 if (autoscalecolour == true) {
                     avm->clearAutoscale();
                 }
@@ -516,7 +539,11 @@ int main (int argc, char **argv)
             VdmStatePtr avm = (VdmStatePtr)v1.getVisualModel (grid_state);
             //std::cout << "RD.s[0] = " << (unsigned int)RD.s[0]
             //          << " = " << morph::bn::GeneNet<N,K>::state_str(RD.s[0]) << std::endl;
-            avm->updateData (&(RD.s)); // First call to updateData.
+#ifdef BD_MARK3
+            avm->updateData (&(RD.s[RD.s_buf_next]));
+#else
+            avm->updateData (&(RD.s));
+#endif
 
             if (saveplots) {
                 v1.render();
@@ -552,7 +579,11 @@ int main (int argc, char **argv)
             for (unsigned int i = 0; i < N; ++i) {
                 // The 0th curve on the graph is the last/MSB gene (i.e. 'a')
                 graph->append ((float)RD.stepCount, RD.sum_a(i)/(FLT)RD.nhex, (N-i-1));
+#ifdef BD_MARK3
+                graph2->append ((float)RD.stepCount, RD.a[i][RD.a_buf_next][hexidx], (N-i-1));
+#else
                 graph2->append ((float)RD.stepCount, RD.a[i][hexidx], (N-i-1));
+#endif
             }
 #endif
             RD.save();
