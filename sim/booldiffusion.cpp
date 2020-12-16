@@ -11,6 +11,8 @@
 
 #if defined BD_MARK2
 # include "rd_bool2.h"
+#elif defined BD_MARK3
+# include "rd_bool3.h"
 #else
 # include "rd_bool1.h"
 #endif
@@ -130,7 +132,7 @@ int main (int argc, char **argv)
     std::string requested_genome = conf.getString ("genome", "");
     if (!genome_arg.empty()) { requested_genome = genome_arg; }
     std::string title_str("");
-#if defined BD_MARK2
+#if defined BD_MARK2 || defined BD_MARK3
     std::string requested_gradgenome = conf.getString ("grad_genome", "");
     if (!gradgenome_arg.empty()) { requested_gradgenome = gradgenome_arg; }
     if (!requested_genome.empty() && !requested_gradgenome.empty()) {
@@ -187,6 +189,8 @@ int main (int argc, char **argv)
      */
 #if defined BD_MARK2
     RD_Bool2<FLT, N, K> RD;
+#elif defined BD_MARK3
+    RD_Bool3<FLT, N, K> RD;
 #else
     RD_Bool1<FLT, N, K> RD;
 #endif
@@ -217,18 +221,18 @@ int main (int argc, char **argv)
         RD.alpha[N-i-1] = v.get("alpha", 1.0).asDouble();
         RD.D[N-i-1] = v.get("D", 0.01).asDouble();
         RD.beta[N-i-1] = v.get("beta", 0.1).asDouble();
-#if defined BD_MARK2
+#if defined BD_MARK2 || defined BD_MARK3
         RD.gamma[N-i-1] = v.get("gamma", 1).asDouble();
 #endif
 
     }
     RD.expression_threshold = conf.getDouble ("expression_threshold", 0.5f);
-#if defined BD_MARK2
+#if defined BD_MARK2 || defined BD_MARK3
     RD.expression_delay = conf.getInt ("expression_delay", 1);
     std::cout << "Expression delay is " << RD.expression_delay << " timesteps\n";
 #endif
 
-#if defined BD_MARK2
+#if defined BD_MARK2 || defined BD_MARK3
     const Json::Value init_a_params = conf.getArray ("init_a");
     npar = static_cast<unsigned int>(init_a_params.size());
     for (unsigned int i = 0; i < npar; ++i) {
@@ -252,7 +256,7 @@ int main (int argc, char **argv)
     // Add a title label in case the title_str was empty at morph::Visual init
     if (title_str.empty()) {
         title_str = RD.genome.str();
-#if defined BD_MARK2
+#if defined BD_MARK2 || defined BD_MARK3
         title_str += " : " + RD.grad_genome.str();
 #endif
 #ifdef COMPILE_PLOTTING
@@ -266,7 +270,7 @@ int main (int argc, char **argv)
     if (!requested_genome.empty()) {
         RD.genome.set (requested_genome);
     }
-#if defined BD_MARK2
+#if defined BD_MARK2 || defined BD_MARK3
     if (!requested_gradgenome.empty()) {
         RD.grad_genome.set (requested_gradgenome);
     }
@@ -311,7 +315,7 @@ int main (int argc, char **argv)
     // Labels
     v1.addLabel (RD.genome.table(), {0.8f, -0.16f, 0.0f},
                  morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
-# if defined BD_MARK2
+# if defined BD_MARK2 || defined BD_MARK3
     v1.addLabel (RD.grad_genome.shorttable(), {1.0f, -0.16f, 0.0f},
                  morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
 # endif
@@ -565,7 +569,7 @@ int main (int argc, char **argv)
     conf.set ("sim_ran_at_time", tnow.substr(0,tnow.size()-1));
     conf.set ("hextohex_d", RD.hextohex_d);
     conf.set ("genome_used", RD.genome.str());
-#if defined BD_MARK2
+#if defined BD_MARK2 || defined BD_MARK3
     conf.set ("grad_genome_used", RD.grad_genome.str());
 #endif
     conf.set ("dt", RD.get_dt());
