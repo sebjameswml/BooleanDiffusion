@@ -120,7 +120,9 @@ int main (int argc, char **argv)
     if (argc == 3) {
         std::string argpath(argv[2]);
         std::cerr << "Overriding the config-given logpath " << logpath << " with " << argpath << std::endl;
-        logpath = argpath;
+        logbase = conf.getString ("logbase", "logs/");
+        if (logbase.back() != '/') { logbase += '/'; }
+        logpath = logbase + argpath;
         if (overwrite_logs == true) {
             std::cerr << "WARNING: You set a command line log path.\n"
                       << "       : Note that the parameters config permits the program to OVERWRITE LOG\n"
@@ -177,6 +179,14 @@ int main (int argc, char **argv)
     v1.showTitle = true;
     // if using plotting, then set up the render clock
     std::chrono::steady_clock::time_point lastrender = std::chrono::steady_clock::now();
+
+    // User can specify to plot ONLY certain frames.
+    const Json::Value plotonly = conf.getArray ("plotonly");
+    for (unsigned int i = 0; i < plotonly.size(); ++i) {
+        int po = plotonly[i].asInt();
+        std::cout << "will plot only: " << po << std::endl;
+    }
+
 #endif
 
     /*
@@ -447,7 +457,7 @@ int main (int argc, char **argv)
     // Graph sum[a(t)] for each a
     spatOff = { 0.0f, 0.0f, 0.0 };
     morph::GraphVisual<FLT>* graph = new morph::GraphVisual<FLT> (v1.shaderprog, v1.tshaderprog, spatOff);
-    graph->setdarkbg(); // colours axes and text
+    //graph->setdarkbg(); // colours axes and text
     graph->twodimensional = false;
     graph->setlimits (0, steps, 0, conf.getFloat("graph_mean_ymax", 1.0f));
     graph->policy = morph::stylepolicy::lines; // markers, both or allcolour
@@ -485,10 +495,10 @@ int main (int argc, char **argv)
 
     spatOff = { -1.6f, 0.0f, 0.0 };
     morph::GraphVisual<FLT>* graph2 = new morph::GraphVisual<FLT> (v1.shaderprog, v1.tshaderprog, spatOff);
-    graph2->setdarkbg(); // colours axes and text
+    //graph2->setdarkbg(); // colours axes and text
     graph2->twodimensional = false;
     graph2->setlimits (0, steps, 0, conf.getFloat("graph_single_ymax", 1.0f));
-    graph2->policy = morph::stylepolicy::markers;
+    graph2->policy = morph::stylepolicy::lines;
     std::stringstream yy;
     yy << "a[gene][" << hexidx << "]";
     graph2->ylabel = yy.str();
@@ -516,7 +526,19 @@ int main (int argc, char **argv)
     while (finished == false) {
         RD.step();
 #ifdef COMPILE_PLOTTING
-        if ((RD.stepCount % plotevery) == 0) {
+        bool doplot = false;
+        if (plotonly.size()) {
+            for (unsigned int i = 0; i < plotonly.size(); ++i) {
+                unsigned int po = plotonly[i].asUInt();
+                if (po == RD.stepCount) {
+                    doplot = true;
+                    break;
+                }
+            }
+        } else {
+            doplot = (RD.stepCount % plotevery) == 0;
+        }
+        if (doplot) {
             // These two lines update the data for the two hex grids. That leads to
             // the CPU recomputing the OpenGL vertices for the visualizations.
             morph::gl::Util::checkError (__FILE__, __LINE__);

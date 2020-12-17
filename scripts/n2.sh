@@ -28,7 +28,8 @@ for GRADGENOME in 1-0 2-0 0-4 1-4 2-4 0-8 1-8 2-8; do
     "steps" : 2000,
     "logevery": 20,
     "plotevery": 20,
-    "vidframes": true,
+    "plotonly" : [1920, 1940, 1960, 1980, 2000],
+    "vidframes": false,
     "finish_asap": true,
     "saveplots": true,
     "overwrite_logs": true,
@@ -55,10 +56,11 @@ for GRADGENOME in 1-0 2-0 0-4 1-4 2-4 0-8 1-8 2-8; do
     "ellipse_b" : 0.07,
 
     "expression_threshold" : 0.1,
-    "expression_delay" : 80,
+    "expression_delay" : 40,
+    "state_delay" : 40,
     "model_params" : [
-        { "alpha" : 0.25, "D" : 0.05, "beta" : 20, "gamma" : 0.2, "name" : "a", "tag" : "MSB" },
-        { "alpha" : 0.25, "D" : 0.0005,  "beta" : 20, "gamma" : 0.2, "name" : "b" }
+        { "alpha" : 0.25, "D" : 0.05, "beta" : 2, "gamma" : 0.2, "name" : "a", "tag" : "MSB" },
+        { "alpha" : 0.25, "D" : 0.0005,  "beta" : 2, "gamma" : 0.2, "name" : "b" }
     ],
 
     "init_a" : [
