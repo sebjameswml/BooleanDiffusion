@@ -322,10 +322,21 @@ int main (int argc, char **argv)
 
 #ifdef COMPILE_PLOTTING
     // Labels
-    v1.addLabel (RD.genome.table(), {0.8f, -0.16f, 0.0f},
+    // RD.genome.table() is not as good as gene_tables
+    std::stringstream gss0;
+    gss0 << "Transln genome: " << RD.genome.str() << ":\n\n" << RD.genome.shorttable();
+    v1.addLabel (gss0.str(), {0.6f, -0.32f, 0.0f},
                  morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
+
+    std::stringstream gss;
+    gss << "\n\nPer-gene tables:\n\n" << RD.grn.gene_tables (RD.genome);
+    v1.addLabel (gss.str(), {0.6f + 0.18f, -0.32f, 0.0f},
+                 morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
+
 # if defined BD_MARK2 || defined BD_MARK3
-    v1.addLabel (RD.grad_genome.shorttable(), {1.0f, -0.16f, 0.0f},
+    std::stringstream ggss;
+    ggss << "Gradient genome: " << RD.grad_genome.str() << "\n\n" << RD.grad_genome.shorttable();
+    v1.addLabel (ggss.str(), {0.6f + 0.18f + (0.025f * N * N), -0.32f, 0.0f},
                  morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
 # endif
     // Before starting the simulation, create the HexGridVisuals.

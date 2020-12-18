@@ -14,7 +14,7 @@ mkdir -p configs/n2
 mkdir -p logs/lastframes
 
 # This list of gradient genomes excludes all the degenerate and self-degenerate cases.
-for GRADGENOME in 1-0 2-0 0-4 1-4 2-4 0-8 1-8 2-8; do
+for GRADGENOME in 0-0 1-0 2-0 0-4 1-4 2-4 0-8 1-8 2-8; do
     for ((gsect1 = 0; gsect1 < 16; gsect1++)); do
         for ((gsect2 = 0; gsect2 < 16; gsect2++)); do
 
@@ -26,9 +26,9 @@ for GRADGENOME in 1-0 2-0 0-4 1-4 2-4 0-8 1-8 2-8; do
             cat > configs/n2/${JSON} <<EOF
 {
     "steps" : 2000,
-    "logevery": 20,
+    "logevery": 10,
     "plotevery": 20,
-    "plotonly" : [1920, 1940, 1960, 1980, 2000],
+    "plotonly" : [2000],
     "vidframes": false,
     "finish_asap": true,
     "saveplots": true,
@@ -70,15 +70,18 @@ for GRADGENOME in 1-0 2-0 0-4 1-4 2-4 0-8 1-8 2-8; do
 }
 EOF
             # A version of the sim prog:
-            echo "./build/sim/bd2_2 configs/n2/${JSON}"
-            ./build/sim/bd2_2 configs/n2/${JSON}
+            echo "./build/sim/bd3_2 configs/n2/${JSON}"
+            ./build/sim/bd3_2 configs/n2/${JSON}
             RTN=$?
             if [ $RTN -ne "0" ]; then
                 echo "Config: configs/n2/${JSON} FAILED. Moving on to next."
             fi
             # Copy frames into output folder
-            cp logs/${GENOME}--${GRADGENOME}/booldiffusion_0000098.png logs/lastframes/${GENOME}--${GRADGENOME}_98.png
-            cp logs/${GENOME}--${GRADGENOME}/booldiffusion_0000099.png logs/lastframes/${GENOME}--${GRADGENOME}_99.png
+            #cp logs/${GENOME}--${GRADGENOME}/booldiffusion_0001920.png logs/lastframes/${GENOME}--${GRADGENOME}_1920.png
+            #cp logs/${GENOME}--${GRADGENOME}/booldiffusion_0001940.png logs/lastframes/${GENOME}--${GRADGENOME}_1940.png
+            #cp logs/${GENOME}--${GRADGENOME}/booldiffusion_0001960.png logs/lastframes/${GENOME}--${GRADGENOME}_1960.png
+            #cp logs/${GENOME}--${GRADGENOME}/booldiffusion_0001980.png logs/lastframes/${GENOME}--${GRADGENOME}_1980.png
+            cp logs/${GENOME}--${GRADGENOME}/booldiffusion_0002000.png logs/lastframes/${GENOME}--${GRADGENOME}_2000.png
         done
     done
 done
