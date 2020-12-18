@@ -325,19 +325,28 @@ int main (int argc, char **argv)
     // RD.genome.table() is not as good as gene_tables
     std::stringstream gss0;
     gss0 << "Transln genome: " << RD.genome.str() << ":\n\n" << RD.genome.shorttable();
-    v1.addLabel (gss0.str(), {0.6f, -0.32f, 0.0f},
-                 morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
+    float x_tabstart = 0.6f;
+    float y_tab = -0.32f;
+    float tabspace = 0.01f;
+    morph::Vector<float, 3> tabpos = { x_tabstart, y_tab, 0.0f };
+    morph::Vector<float, 2> dims1 = v1.addLabel (gss0.str(), tabpos,
+                                                 morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
+    std::cout << "Table 1 has width/height: " << dims1 << std::endl;
 
     std::stringstream gss;
+    tabpos[0] += dims1[0] + tabspace;
     gss << "\n\nPer-gene tables:\n\n" << RD.grn.gene_tables (RD.genome);
-    v1.addLabel (gss.str(), {0.6f + 0.18f, -0.32f, 0.0f},
-                 morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
+    morph::Vector<float, 2> dims2 = v1.addLabel (gss.str(), tabpos,
+                                                 morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
+    std::cout << "Table 2 has width/height: " << dims2 << std::endl;
 
 # if defined BD_MARK2 || defined BD_MARK3
+    tabpos[0] += dims2[0] + 3*tabspace;
     std::stringstream ggss;
     ggss << "Gradient genome: " << RD.grad_genome.str() << "\n\n" << RD.grad_genome.shorttable();
-    v1.addLabel (ggss.str(), {0.6f + 0.18f + (0.025f * N * N), -0.32f, 0.0f},
-                 morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
+    morph::Vector<float, 2> dims3 = v1.addLabel (ggss.str(), tabpos,
+                                                 morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
+    std::cout << "Table 3 has width/height: " << dims3 << std::endl;
 # endif
     // Before starting the simulation, create the HexGridVisuals.
 
