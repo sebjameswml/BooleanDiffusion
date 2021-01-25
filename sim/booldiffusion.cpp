@@ -206,7 +206,7 @@ int main (int argc, char **argv)
     RD.logpath = logpath;
     RD.hextohex_d = conf.getFloat ("hextohex_d", 0.01f);
     RD.boundaryFalloffDist = conf.getFloat ("boundaryFalloffDist", 0.01f);
-#if defined BD_MARK2
+#if defined BD_MARK3
     RD.a_delay = conf.getInt ("expression_delay", 40);
     RD.s_delay = conf.getInt ("state_delay", 40);
 #endif
@@ -269,7 +269,7 @@ int main (int argc, char **argv)
         title_str += " : " + RD.grad_genome.str();
 #endif
 #ifdef COMPILE_PLOTTING
-        v1.addLabel (title_str, {0,0,0}, morph::colour::black, morph::VisualFont::Vera, 0.035f, 64);
+        v1.addLabel (title_str, {0,0,0}, morph::colour::black, morph::VisualFont::Vera, 0.025f, 64);
 #endif
     }
 

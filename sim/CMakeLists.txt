@@ -2,7 +2,7 @@ set(MORPH_LIBS_CORE ${ARMADILLO_LIBRARY} ${ARMADILLO_LIBRARIES} ${HDF5_C_LIBRARI
 set(MORPH_LIBS_GL ${OpenCV_LIBS} OpenGL::GL Freetype::Freetype glfw)
 
 set(COMPILE_FIRST 0)
-set(COMPILE_SECOND 0)
+set(COMPILE_SECOND 1)
 set(COMPILE_THIRD 1)
 
 # First system
@@ -29,6 +29,10 @@ if(COMPILE_SECOND)
   add_executable(bd2_3 booldiffusion.cpp)
   target_compile_definitions(bd2_3 PUBLIC FLT=float COMPILE_PLOTTING NGENES=3 NINPUTS=3 BD_MARK2)
   target_link_libraries(bd2_3 ${MORPH_LIBS_CORE} ${MORPH_LIBS_GL})
+
+  add_executable(bd2_3c booldiffusion.cpp)
+  target_compile_definitions(bd2_3c PUBLIC FLT=float NGENES=3 NINPUTS=3 BD_MARK2)
+  target_link_libraries(bd2_3c ${MORPH_LIBS_CORE} ${MORPH_LIBS_GL})
 
   add_executable(bd2_5 booldiffusion.cpp)
   target_compile_definitions(bd2_5 PUBLIC FLT=float COMPILE_PLOTTING NGENES=5 NINPUTS=5 BD_MARK2)

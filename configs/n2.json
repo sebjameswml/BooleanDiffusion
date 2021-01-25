@@ -1,15 +1,15 @@
 {
     "sect_global" : "Global simulation parameters",
     "desc_steps" : "The number of steps to simulate for",
-    "steps" : 1000,
+    "steps" : 1500,
     "logevery": 20,
-    "plotevery": 5,
+    "plotevery": 4,
     "pureplot" : false,
     "desc_plotonly" : "If present, this should be an array of frames to be plotted. Overrides the plotevery setting",
     "_plotonly" : [1920, 1940, 1960, 1980, 2000],
     "finish_asap" : false,
-    "vidframes": false,
-    "saveplots": false,
+    "vidframes": true,
+    "saveplots": true,
     "overwrite_logs": true,
     "desc_hextohex_d" : "Hex to hex distance, determines num hexes",
     "boundaryFalloffDist" : 0.01,
@@ -29,9 +29,9 @@
     "graph_hexgi" : 0,
 
     "desc_genome" : "Leave blank to choose randomly. 4-4 does 'I express only if I express' 2-2 does 'I express only if only the other gene expresses'",
-    "genome" : "",
+    "genome" : "7-6",
     "desc_grad_genome" : "Leave blank to choose randomly. 2-8 Does 'A climbs B and B climbs A'",
-    "grad_genome" : "",
+    "grad_genome" : "0-0",
 
     "sect_ellipse" : "Ellipse parameters",
     "hextohex_d" : 0.02,
@@ -40,11 +40,11 @@
 
     "sect_model_params" : "Boolean Diffusion Parameters",
     "expression_threshold" : 0.1,
-    "expression_delay" : 40,
-    "state_delay" : 40,
+    "expression_delay" : 80,
+    "state_delay" : 80,
     "model_params" : [
-        { "alpha" : 0.2, "D" : 0.05, "beta" : 4, "gamma" : 2, "name" : "a", "tag" : "MSB" },
-        { "alpha" : 0.2, "D" : 0.1,  "beta" : 4, "gamma" : 2, "name" : "b" }
+        { "alpha" : 0.2, "D" : 2, "beta" : 4, "gamma" : 2, "name" : "a", "tag" : "MSB" },
+        { "alpha" : 0.2, "D" : 4,  "beta" : 4, "gamma" : 2, "name" : "b" }
     ],
 
     "dest_init_a" : "Initialize the gene expressions according to these Gaussians. Background level can also be set. Multiple entries in the array for the same gene index (idx) are permitted - they simply sum together.",
