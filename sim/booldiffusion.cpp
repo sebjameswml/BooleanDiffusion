@@ -181,9 +181,9 @@ int main (int argc, char **argv)
     std::chrono::steady_clock::time_point lastrender = std::chrono::steady_clock::now();
 
     // User can specify to plot ONLY certain frames.
-    const Json::Value plotonly = conf.getArray ("plotonly");
+    const nlohmann::json plotonly = conf.get("plotonly");
     for (unsigned int i = 0; i < plotonly.size(); ++i) {
-        int po = plotonly[i].asInt();
+        int po = plotonly[i];
         std::cout << "will plot only: " << po << std::endl;
     }
 
@@ -214,7 +214,7 @@ int main (int argc, char **argv)
     RD.set_dt (static_cast<FLT>(conf.getDouble ("dt", 0.00001))); // The length of one timestep
 
     // Set the Boolean Diffusion model parameters
-    const Json::Value params = conf.getArray ("model_params");
+    const nlohmann::json params = conf.get("model_params");
     unsigned int npar = static_cast<unsigned int>(params.size());
     if (npar != N) {
         std::cerr << "Number of parameter sets in config must be N=" << N
@@ -223,15 +223,15 @@ int main (int argc, char **argv)
         return 1;
     }
     for (int i = (N-1); i >= 0; i--) {
-        Json::Value v = params[i];
+        nlohmann::json v = params[i];
         std::cout << "Placing parameters for Gene "
-                  << v.get("name", "unknown").asString()
+                  << (v.contains("name") ? v["name"].get<std::string>() : std::string("unknown"))
                   << " in vector index " << (N-i-1) << std::endl;
-        RD.alpha[N-i-1] = v.get("alpha", 1.0).asDouble();
-        RD.D[N-i-1] = v.get("D", 0.01).asDouble();
-        RD.beta[N-i-1] = v.get("beta", 0.1).asDouble();
+        RD.alpha[N-i-1] = v.contains("alpha") ? v["alpha"].get<FLT>() : FLT{1};
+        RD.D[N-i-1] = v.contains("D") ? v["D"].get<FLT>() : FLT{0.01};
+        RD.beta[N-i-1] = v.contains("beta") ? v["beta"].get<FLT>() : FLT{0.1};
 #if defined BD_MARK2 || defined BD_MARK3
-        RD.gamma[N-i-1] = v.get("gamma", 1).asDouble();
+        RD.gamma[N-i-1] = v.contains("gamma") ? v["gamma"].get<FLT>() : FLT{1};
 #endif
 
     }
@@ -242,19 +242,19 @@ int main (int argc, char **argv)
 #endif
 
 #if defined BD_MARK2 || defined BD_MARK3
-    const Json::Value init_a_params = conf.getArray ("init_a");
+    const nlohmann::json init_a_params = conf.get("init_a");
     npar = static_cast<unsigned int>(init_a_params.size());
     for (unsigned int i = 0; i < npar; ++i) {
-        Json::Value v = init_a_params[i];
-        int idx = v.get ("idx", -1).asInt();
+        nlohmann::json v = init_a_params[i];
+        int idx = v.contains("idx") ? v["idx"].get<int>() : -1;
         if (idx >= 0) {
             GaussParams<FLT> gp;
-            gp.gain = v.get ("gain", 1.0).asDouble();
-            gp.sigma = v.get ("sigma", 1.0).asDouble();
+            gp.gain = v.contains("gain") ? v["gain"].get<FLT>() : FLT{1};
+            gp.sigma = v.contains("sigma") ? v["sigma"].get<FLT>() : FLT{1};
             gp.sigmasq = gp.sigma * gp.sigma;
-            gp.x = v.get ("x", 0.0).asDouble();
-            gp.y = v.get ("y", 0.0).asDouble();
-            gp.bg = v.get ("bg", 0.0).asDouble();
+            gp.x = v.contains("x") ? v["x"].get<FLT>() : FLT{0};
+            gp.y = v.contains("y") ? v["y"].get<FLT>() : FLT{0};
+            gp.bg = v.contains("bg") ? v["bg"].get<FLT>() : FLT{0};
             RD.initialHumps.insert (std::make_pair((unsigned int)idx, gp));
         }
     }
@@ -549,7 +549,7 @@ int main (int argc, char **argv)
         bool doplot = false;
         if (plotonly.size()) {
             for (unsigned int i = 0; i < plotonly.size(); ++i) {
-                unsigned int po = plotonly[i].asUInt();
+                unsigned int po = plotonly[i];
                 if (po == RD.stepCount) {
                     doplot = true;
                     break;
