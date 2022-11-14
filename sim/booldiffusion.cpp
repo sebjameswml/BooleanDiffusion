@@ -365,23 +365,18 @@ int main (int argc, char **argv)
         morph::Scale<FLT> zscale; zscale.setParams ((map3d ? 0.2f : 0.0f), 0.0f);
         std::cout << "Create HexGridVisual for RD.a["<<i<<"]..." << std::endl;
 #ifdef BD_MARK3
-        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
-                                                                        RD.hg,
-                                                                        spatOff,
-                                                                        &(RD.a[i][RD.a_buf_next]),
-                                                                        zscale,
-                                                                        cscale_gene,
-                                                                        morph::ColourMapType::Jet,
-                                                                        0.0f, (map3d ? true : false));
+        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog, RD.hg, spatOff);
+        hgv->setScalarData (&(RD.a[i][RD.a_buf_next]));
+        hgv->zScale = zscale;
+        hgv->colourScale = cscale_gene;
+        hgv->cm.setType (morph::ColourMapType::Jet);
+        // What were the last two? // 0.0f, (map3d ? true : false));
 #else
-        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
-                                                                        RD.hg,
-                                                                        spatOff,
-                                                                        &(RD.a[i]),
-                                                                        zscale,
-                                                                        cscale_gene,
-                                                                        morph::ColourMapType::Jet,
-                                                                        0.0f, (map3d ? true : false));
+        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog, RD.hg, spatOff);
+        hgv->setScalarData (&(RD.a[i]));
+        hgv->zScale = zscale;
+        hgv->colourScale = cscale_gene;
+        hgv->cm.setType (morph::ColourMapType::Jet);
 #endif
         std::stringstream ss;
         // MSB is 'a'
@@ -392,6 +387,7 @@ int main (int argc, char **argv)
         std::cout << "grids["<<i<<"]: " << ss.str() << std::endl;
         hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
 
+        hgv->finalize();
         grids[i] = v1.addVisualModel (hgv);
         spatOff[1] -= (3.0f * conf.getFloat ("ellipse_b", 0.8f));
     }
@@ -403,14 +399,11 @@ int main (int argc, char **argv)
         morph::Scale<FLT> zscale; zscale.setParams ((map3d ? 0.2f : 0.0f), 0.0f);
         // The second is the colour scaling. Set this to autoscale.
         morph::Scale<FLT> cscale; cscale.compute_autoscale (FLT{-1}, FLT{1});
-        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
-                                                                        RD.hg,
-                                                                        spatOff,
-                                                                        &(RD.T[i]),
-                                                                        zscale,
-                                                                        cscale,
-                                                                        map3d ? morph::ColourMapType::RainbowZeroBlack : morph::ColourMapType::Jet,
-                                                                        0.0f, (map3d ? true : false));
+        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog, RD.hg, spatOff);
+        hgv->setScalarData (&(RD.T[i]));
+        hgv->zScale = zscale;
+        hgv->colourScale = cscale;
+        hgv->cm.setType (map3d ? morph::ColourMapType::RainbowZeroBlack : morph::ColourMapType::Jet);
         std::stringstream ss;
         // MSB is 'a'
         char gc = 'a';
@@ -418,7 +411,7 @@ int main (int argc, char **argv)
         gc-=(i+1);
         ss << "T(" << gc << ")";
         hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
-
+        hgv->finalize();
         overthresh[i] = v1.addVisualModel (hgv);
         spatOff[1] -= (3.0f * conf.getFloat ("ellipse_b", 0.8f));
     }
@@ -429,14 +422,11 @@ int main (int argc, char **argv)
         morph::Scale<FLT> zscale; zscale.setParams ((map3d ? 0.02f : 0.0f), 0.0f);
         // The second is the colour scaling. Set this to autoscale.
         morph::Scale<FLT> cscale; cscale.compute_autoscale (FLT{0}, FLT{1});
-        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog,
-                                                                        RD.hg,
-                                                                        spatOff,
-                                                                        &(RD.F[i]),
-                                                                        zscale,
-                                                                        cscale,
-                                                                        map3d ? morph::ColourMapType::RainbowZeroBlack : morph::ColourMapType::Jet,
-                                                                        0.0f, false);
+        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog, RD.hg, spatOff);
+        hgv->setScalarData (&(RD.F[i]));
+        hgv->zScale = zscale;
+        hgv->colourScale = cscale;
+        hgv->cm.setType (map3d ? morph::ColourMapType::RainbowZeroBlack : morph::ColourMapType::Jet);
         std::stringstream ss;
         // MSB is 'a'
         char gc = 'a';
@@ -444,7 +434,7 @@ int main (int argc, char **argv)
         gc-=(i+1);
         ss << "F_" << gc << "()";
         hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
-
+        hgv->finalize();
         expressing[i] = v1.addVisualModel (hgv);
         spatOff[1] -= (3.0f * conf.getFloat ("ellipse_b", 0.8f));
     }
@@ -453,24 +443,17 @@ int main (int argc, char **argv)
     // What params to set on colour scale to ensure that 0 is min and 2^N is max?
     morph::Scale<morph::bn::state_t, float> cscale;
     cscale.compute_autoscale (0, static_cast<morph::bn::state_t>(1<<N));
+    morph::HexGridVisual<morph::bn::state_t>* hgv1 = new morph::HexGridVisual<morph::bn::state_t> (v1.shaderprog, v1.tshaderprog, RD.hg, stateGraph);
 #ifdef BD_MARK3
-    morph::HexGridVisual<morph::bn::state_t>* hgv1 = new morph::HexGridVisual<morph::bn::state_t> (v1.shaderprog, v1.tshaderprog,
-                                                                                                   RD.hg,
-                                                                                                   stateGraph,
-                                                                                                   &(RD.s[RD.s_buf_next]),
-                                                                                                   zscale,
-                                                                                                   cscale,
-                                                                                                   morph::ColourMapType::Jet);
+    hgv1->setScalarData (&(RD.s[RD.s_buf_next]));
 #else
-    morph::HexGridVisual<morph::bn::state_t>* hgv1 = new morph::HexGridVisual<morph::bn::state_t> (v1.shaderprog, v1.tshaderprog,
-                                                                                                   RD.hg,
-                                                                                                   stateGraph,
-                                                                                                   &(RD.s),
-                                                                                                   zscale,
-                                                                                                   cscale,
-                                                                                                   morph::ColourMapType::Jet);
+    hgv1->setScalarData (&(RD.s));
 #endif
+    hgv1->zScale = zscale;
+    hgv1->colourScale = cscale;
+    hgv1->cm.setType (morph::ColourMapType::Jet);
     hgv1->addLabel ("state", {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
+    hgv1->finalize();
     unsigned int grid_state = v1.addVisualModel (hgv1);
 
 
