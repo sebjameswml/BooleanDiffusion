@@ -33,7 +33,7 @@
 # include <morph/ColourMap.h>
 # include <morph/VisualDataModel.h>
 # include <morph/Scale.h>
-# include <morph/Vector.h>
+# include <morph/vec.h>
 //! Helper function to save PNG images with a suitable name
 void savePngs (const std::string& logpath, const std::string& name,
                unsigned int frameN, morph::Visual& v)
@@ -328,7 +328,7 @@ int main (int argc, char **argv)
     float x_tabstart = 0.6f;
     float y_tab = -0.32f;
     float tabspace = 0.01f;
-    morph::Vector<float, 3> tabpos = { x_tabstart, y_tab, 0.0f };
+    morph::vec<float, 3> tabpos = { x_tabstart, y_tab, 0.0f };
     morph::TextGeometry dims1 = v1.addLabel (gss0.str(), tabpos,
                                              morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
     std::cout << "Table 1 has width/height: " << dims1.width() << "/" << dims1.height() << std::endl;
@@ -351,7 +351,7 @@ int main (int argc, char **argv)
     // Before starting the simulation, create the HexGridVisuals.
 
     // Spatial offset, for positioning of HexGridVisuals
-    morph::Vector<float> spatOff;
+    morph::vec<float> spatOff;
     float yzero = 0.9f;
 
     // A. Offset in x direction to the left.
@@ -391,7 +391,7 @@ int main (int argc, char **argv)
         grids[i] = v1.addVisualModel (hgv);
         spatOff[1] -= (3.0f * conf.getFloat ("ellipse_b", 0.8f));
     }
-    morph::Vector<float> stateGraph = spatOff;
+    morph::vec<float> stateGraph = spatOff;
 
     spatOff = { 2.2f, yzero, 0.0 };
     std::array<unsigned int, N> overthresh;
