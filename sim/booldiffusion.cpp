@@ -36,7 +36,7 @@
 # include <morph/vec.h>
 //! Helper function to save PNG images with a suitable name
 void savePngs (const std::string& logpath, const std::string& name,
-               unsigned int frameN, morph::Visual& v)
+               unsigned int frameN, morph::Visual<>& v)
 {
     std::stringstream ff1;
     ff1 << logpath << "/" << name<< "_";
@@ -44,9 +44,6 @@ void savePngs (const std::string& logpath, const std::string& name,
     ff1 << ".png";
     v.saveImage (ff1.str());
 }
-// A convenience typedef
-typedef morph::VisualDataModel<FLT>* VdmFltPtr;
-typedef morph::VisualDataModel<morph::bn::state_t>* VdmStatePtr;
 #endif
 
 #include <morph/tools.h>
@@ -163,7 +160,7 @@ int main (int argc, char **argv)
     const bool map3d = conf.getBool ("map3d", true);
     // Set up the morph::Visual object which provides the visualization scene (and
     // a GLFW window to show it in)
-    morph::Visual v1 (win_width, win_height, title_str);
+    morph::Visual<> v1 (win_width, win_height, title_str);
     // A bit of lighting is useful for 3d graphs
     v1.lightingEffects (map3d);
     // Set a dark blue background (black is the default). This value has the order
@@ -269,7 +266,7 @@ int main (int argc, char **argv)
         title_str += " : " + RD.grad_genome.str();
 #endif
 #ifdef COMPILE_PLOTTING
-        v1.addLabel (title_str, {0,0,0}, morph::colour::black, morph::VisualFont::Vera, 0.025f, 64);
+        v1.addLabel (title_str, {0,0,0}, morph::TextFeatures(0.025f));
 #endif
     }
 
@@ -330,14 +327,14 @@ int main (int argc, char **argv)
     float tabspace = 0.01f;
     morph::vec<float, 3> tabpos = { x_tabstart, y_tab, 0.0f };
     morph::TextGeometry dims1 = v1.addLabel (gss0.str(), tabpos,
-                                             morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
+                                             morph::TextFeatures(0.01f, 24, false, morph::colour::black, morph::VisualFont::VeraMono));
     std::cout << "Table 1 has width/height: " << dims1.width() << "/" << dims1.height() << std::endl;
 
     std::stringstream gss;
     tabpos[0] += dims1.width() + tabspace;
     gss << "\n\nPer-gene tables:\n\n" << RD.grn.gene_tables (RD.genome);
     morph::TextGeometry dims2 = v1.addLabel (gss.str(), tabpos,
-                                                 morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
+                                             morph::TextFeatures(0.01f, 24, false, morph::colour::black, morph::VisualFont::VeraMono));
     std::cout << "Table 2 has width/height: " << dims2.width() << "/" << dims2.height() << std::endl;
 
 # if defined BD_MARK2 || defined BD_MARK3
@@ -345,7 +342,7 @@ int main (int argc, char **argv)
     std::stringstream ggss;
     ggss << "Gradient genome: " << RD.grad_genome.str() << "\n\n" << RD.grad_genome.shorttable();
     morph::TextGeometry dims3 = v1.addLabel (ggss.str(), tabpos,
-                                                 morph::colour::black, morph::VisualFont::VeraMono, 0.01, 24);
+                                             morph::TextFeatures(0.01f, 24, false, morph::colour::black, morph::VisualFont::VeraMono));
     std::cout << "Table 3 has width/height: " << dims3.width() << "/" << dims3.height() << std::endl;
 # endif
     // Before starting the simulation, create the HexGridVisuals.
@@ -357,22 +354,22 @@ int main (int argc, char **argv)
     // A. Offset in x direction to the left.
     spatOff = { 1.4f, yzero, 0.0 };
     // Z position scaling - how hilly/bumpy the visual will be.
-    std::array<unsigned int, N> grids;
-    v1.setCurrent();
+    std::array<morph::HexGridVisual<FLT>*, N> grids;
+    v1.setContext();
     // The second is the colour scaling. Set this to autoscale the same for all genes
     morph::Scale<FLT> cscale_gene; cscale_gene.compute_autoscale (FLT{0}, FLT{1});
     for (int i = (N-1); i >= 0; i--) {
         morph::Scale<FLT> zscale; zscale.setParams ((map3d ? 0.2f : 0.0f), 0.0f);
         std::cout << "Create HexGridVisual for RD.a["<<i<<"]..." << std::endl;
+        auto hgv = std::make_unique<morph::HexGridVisual<FLT>> (RD.hg.get(), spatOff);
+        v1.bindmodel (hgv);
 #ifdef BD_MARK3
-        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog, RD.hg, spatOff);
         hgv->setScalarData (&(RD.a[i][RD.a_buf_next]));
         hgv->zScale = zscale;
         hgv->colourScale = cscale_gene;
         hgv->cm.setType (morph::ColourMapType::Jet);
         // What were the last two? // 0.0f, (map3d ? true : false));
 #else
-        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog, RD.hg, spatOff);
         hgv->setScalarData (&(RD.a[i]));
         hgv->zScale = zscale;
         hgv->colourScale = cscale_gene;
@@ -384,8 +381,7 @@ int main (int argc, char **argv)
         gc+=N;
         gc-=(i+1);
         ss << gc;
-        std::cout << "grids["<<i<<"]: " << ss.str() << std::endl;
-        hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
+        hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f},  morph::TextFeatures(0.01f, morph::colour::white));
 
         hgv->finalize();
         grids[i] = v1.addVisualModel (hgv);
@@ -394,12 +390,13 @@ int main (int argc, char **argv)
     morph::vec<float> stateGraph = spatOff;
 
     spatOff = { 2.2f, yzero, 0.0 };
-    std::array<unsigned int, N> overthresh;
+    std::array<morph::HexGridVisual<FLT>*, N> overthresh;
     for (int i = (N-1); i >= 0; i--) {
         morph::Scale<FLT> zscale; zscale.setParams ((map3d ? 0.2f : 0.0f), 0.0f);
         // The second is the colour scaling. Set this to autoscale.
         morph::Scale<FLT> cscale; cscale.compute_autoscale (FLT{-1}, FLT{1});
-        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog, RD.hg, spatOff);
+        auto hgv = std::make_unique<morph::HexGridVisual<FLT>> (RD.hg.get(), spatOff);
+        v1.bindmodel (hgv);
         hgv->setScalarData (&(RD.T[i]));
         hgv->zScale = zscale;
         hgv->colourScale = cscale;
@@ -410,19 +407,20 @@ int main (int argc, char **argv)
         gc+=N;
         gc-=(i+1);
         ss << "T(" << gc << ")";
-        hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
+        hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::TextFeatures(0.01f, morph::colour::white));
         hgv->finalize();
         overthresh[i] = v1.addVisualModel (hgv);
         spatOff[1] -= (3.0f * conf.getFloat ("ellipse_b", 0.8f));
     }
 
     spatOff = { 3.0f, yzero, 0.0 };
-    std::array<unsigned int, N> expressing;
+    std::array<morph::HexGridVisual<FLT>*, N> expressing;
     for (int i = (N-1); i >= 0; i--) {
         morph::Scale<FLT> zscale; zscale.setParams ((map3d ? 0.02f : 0.0f), 0.0f);
         // The second is the colour scaling. Set this to autoscale.
         morph::Scale<FLT> cscale; cscale.compute_autoscale (FLT{0}, FLT{1});
-        morph::HexGridVisual<FLT>* hgv = new morph::HexGridVisual<FLT> (v1.shaderprog, v1.tshaderprog, RD.hg, spatOff);
+        auto hgv = std::make_unique<morph::HexGridVisual<FLT>> (RD.hg.get(), spatOff);
+        v1.bindmodel (hgv);
         hgv->setScalarData (&(RD.F[i]));
         hgv->zScale = zscale;
         hgv->colourScale = cscale;
@@ -433,7 +431,7 @@ int main (int argc, char **argv)
         gc+=N;
         gc-=(i+1);
         ss << "F_" << gc << "()";
-        hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
+        hgv->addLabel (ss.str(), {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::TextFeatures(0.01f, morph::colour::white));
         hgv->finalize();
         expressing[i] = v1.addVisualModel (hgv);
         spatOff[1] -= (3.0f * conf.getFloat ("ellipse_b", 0.8f));
@@ -443,7 +441,8 @@ int main (int argc, char **argv)
     // What params to set on colour scale to ensure that 0 is min and 2^N is max?
     morph::Scale<morph::bn::state_t, float> cscale;
     cscale.compute_autoscale (0, static_cast<morph::bn::state_t>(1<<N));
-    morph::HexGridVisual<morph::bn::state_t>* hgv1 = new morph::HexGridVisual<morph::bn::state_t> (v1.shaderprog, v1.tshaderprog, RD.hg, stateGraph);
+    auto hgv1 = std::make_unique<morph::HexGridVisual<morph::bn::state_t>> (RD.hg.get(), stateGraph);
+    v1.bindmodel (hgv1);
 #ifdef BD_MARK3
     hgv1->setScalarData (&(RD.s[RD.s_buf_next]));
 #else
@@ -452,14 +451,15 @@ int main (int argc, char **argv)
     hgv1->zScale = zscale;
     hgv1->colourScale = cscale;
     hgv1->cm.setType (morph::ColourMapType::Jet);
-    hgv1->addLabel ("state", {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::colour::white);
+    hgv1->addLabel ("state", {RD.ellipse_a+0.05f, 0.0f, 0.01f}, morph::TextFeatures(0.01f, morph::colour::white));
     hgv1->finalize();
-    unsigned int grid_state = v1.addVisualModel (hgv1);
+    auto grid_state = v1.addVisualModel (hgv1);
 
 
     // Graph sum[a(t)] for each a
     spatOff = { 0.0f, 0.0f, 0.0 };
-    morph::GraphVisual<FLT>* graph = new morph::GraphVisual<FLT> (v1.shaderprog, v1.tshaderprog, spatOff);
+    auto graph = std::make_unique<morph::GraphVisual<FLT>> (spatOff);
+    v1.bindmodel (graph);
     //graph->setdarkbg(); // colours axes and text
     graph->twodimensional = false;
     graph->setlimits (0, steps, 0, conf.getFloat("graph_mean_ymax", 1.0f));
@@ -478,7 +478,7 @@ int main (int argc, char **argv)
         graph->prepdata (ss.str());
     }
     graph->finalize();
-    v1.addVisualModel (static_cast<morph::VisualModel*>(graph));
+    auto graph_ptr = v1.addVisualModel (graph);
 
     // Graph to probe a single hex
     int hexidx = conf.getInt ("graph_hex", -1);
@@ -497,7 +497,8 @@ int main (int argc, char **argv)
     if (hexidx == -1) { hexidx = 0; }
 
     spatOff = { -1.6f, 0.0f, 0.0 };
-    morph::GraphVisual<FLT>* graph2 = new morph::GraphVisual<FLT> (v1.shaderprog, v1.tshaderprog, spatOff);
+    auto graph2 = std::make_unique<morph::GraphVisual<FLT>> (spatOff);
+    v1.bindmodel (graph2);
     //graph2->setdarkbg(); // colours axes and text
     graph2->twodimensional = false;
     graph2->setlimits (0, steps, 0, conf.getFloat("graph_single_ymax", 1.0f));
@@ -517,7 +518,7 @@ int main (int argc, char **argv)
         graph2->prepdata (ss.str());
     }
     graph2->finalize();
-    v1.addVisualModel (static_cast<morph::VisualModel*>(graph2));
+    auto graph2_ptr = v1.addVisualModel (graph2);
 
     bool pureplot = conf.getBool ("pureplot", false); // pureplot means we're rendering only as necessary for saving pngs
 #endif
@@ -546,28 +547,24 @@ int main (int argc, char **argv)
             // the CPU recomputing the OpenGL vertices for the visualizations.
             morph::gl::Util::checkError (__FILE__, __LINE__);
             for (unsigned int i = 0; i < N; ++i) {
-                VdmFltPtr avm = (VdmFltPtr)v1.getVisualModel (grids[i]);
 #ifdef BD_MARK3
-                avm->updateData (&(RD.a[i][RD.a_buf_next]));
+                grids[i]->updateData (&(RD.a[i][RD.a_buf_next]));
 #else
-                avm->updateData (&(RD.a[i]));
+                grids[i]->updateData (&(RD.a[i]));
 #endif
                 if (autoscalecolour == true) {
-                    avm->clearAutoscale();
+                    grids[i]->clearAutoscale();
                 }
-                avm = (VdmFltPtr)v1.getVisualModel (overthresh[i]);
-                avm->updateData (&(RD.T[i]));
-                avm = (VdmFltPtr)v1.getVisualModel (expressing[i]);
-                avm->updateData (&(RD.F[i]));
+                overthresh[i]->updateData (&(RD.T[i]));
+                expressing[i]->updateData (&(RD.F[i]));
             }
 
-            VdmStatePtr avm = (VdmStatePtr)v1.getVisualModel (grid_state);
             //std::cout << "RD.s[0] = " << (unsigned int)RD.s[0]
             //          << " = " << morph::bn::GeneNet<N,K>::state_str(RD.s[0]) << std::endl;
 #ifdef BD_MARK3
-            avm->updateData (&(RD.s[RD.s_buf_next]));
+            grid_state->updateData (&(RD.s[RD.s_buf_next]));
 #else
-            avm->updateData (&(RD.s));
+            grid_state->updateData (&(RD.s));
 #endif
 
             if (saveplots) {
@@ -603,11 +600,11 @@ int main (int argc, char **argv)
             // Update the graph of sum(a)
             for (unsigned int i = 0; i < N; ++i) {
                 // The 0th curve on the graph is the last/MSB gene (i.e. 'a')
-                graph->append ((float)RD.stepCount, RD.sum_a(i)/(FLT)RD.nhex, (N-i-1));
+                graph_ptr->append ((float)RD.stepCount, RD.sum_a(i)/(FLT)RD.nhex, (N-i-1));
 #ifdef BD_MARK3
-                graph2->append ((float)RD.stepCount, RD.a[i][RD.a_buf_next][hexidx], (N-i-1));
+                graph2_ptr->append ((float)RD.stepCount, RD.a[i][RD.a_buf_next][hexidx], (N-i-1));
 #else
-                graph2->append ((float)RD.stepCount, RD.a[i][hexidx], (N-i-1));
+                graph2_ptr->append ((float)RD.stepCount, RD.a[i][hexidx], (N-i-1));
 #endif
             }
 #endif
